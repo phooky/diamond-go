@@ -1,0 +1,79 @@
+<html>
+	<head>
+		<title>Diamond Go</title>
+	</head>
+	<body>
+		<script src="three.min.js"></script>
+		<script type="text/javascript">
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild(renderer.domElement);
+			camera.position.z = 3;
+
+			function Node(rank,x,y) {
+				this.rank = rank;
+				this.x = x;
+				this.y = y;
+				this.links = [undefined,undefined,undefined,undefined];
+			}
+
+			var rankHeight = 0.1;
+			var rankDiag = rankHeight * Math.sqrt(2);
+			var nodeMat = new THREE.MeshBasicMaterial({color:0x00ff00});
+			var nodeGeo = new THREE.BoxGeometry(0.02,0.02,0.02);
+			function buildNodes(ranks) {
+				var nodes = [];
+				var total = 0;
+				for (var i = 0; i < ranks; i++) {
+					// build rank
+					var r;
+					if (i >= ranks/2) r = ranks-(i+1);
+					else r = i;
+					var wx = Math.floor(r/2) + 1;
+					var wy = Math.ceil(r/2) + 1;
+					for (var x = 0; x < wx; x++) {
+						var xoff = -wx+1;
+						for (var y = 0; y < wy; y++) {
+							var yoff = -wy+1;
+							var node = new Node(i,xoff+2*x,yoff+2*y);
+							nodes.push(node);
+							var nodeCube = new THREE.Mesh(nodeGeo,nodeMat);
+							nodeCube.position.y = (ranks/2 - node.rank) * rankHeight;
+							nodeCube.position.x = node.x * rankDiag;
+							nodeCube.position.z = node.y * rankDiag;
+							scene.add(nodeCube);
+						}
+					}
+					total += wx*wy;
+				}
+				console.log(total);
+				return nodes;
+			}
+
+			buildNodes(17);
+
+			function renderNode(plank,row,column,color) {
+			}
+
+			function renderLine(p1,r1,c1,p2,r2,c2) {
+
+			}
+
+			var plankCount = 1
+			function render() {
+				requestAnimationFrame( render );
+				var angle=new Date().getTime()/1200.0;
+				camera.position.z = Math.cos(angle)*2;
+				camera.position.x = Math.sin(angle)*2;
+				camera.lookAt(new THREE.Vector3(0,0,0));
+				// cube.position.x = Math.sin();
+				// cube.rotation.x += 0.03;
+				// cube.rotation.y += 0.01;
+				renderer.render( scene, camera );
+			}
+			render();
+		</script>
+	</body>
+</html>
