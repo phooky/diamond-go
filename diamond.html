@@ -6,7 +6,7 @@
 		<script src="three.min.js"></script>
 		<script type="text/javascript">
 			var scene = new THREE.Scene();
-			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 10000);
 			var renderer = new THREE.WebGLRenderer();
 			renderer.setSize( window.innerWidth, window.innerHeight );
 			document.body.appendChild(renderer.domElement);
@@ -22,7 +22,15 @@
 			var rankHeight = 0.1;
 			var rankDiag = rankHeight * Math.sqrt(2);
 			var nodeMat = new THREE.MeshBasicMaterial({color:0x00ff00});
-			var nodeGeo = new THREE.BoxGeometry(0.02,0.02,0.02);
+			var nodeSelMat = new THREE.MeshBasicMaterial({color:0x0000ff});
+			var nodeGeo = new THREE.BoxGeometry(0.04,0.04,0.04);
+			// THREE.ImageUtils.crossOrigin ='file:///home/phooky/Repos/phooky/diamond-go/';
+			// console.log(THREE.ImageUtils.crossOrigin);
+			// var nodeTex = THREE.ImageUtils.loadTexture( "./node-tex.png" );
+   //          var nodeSpriteMat = new THREE.SpriteMaterial( { map: nodeTex, color: 0xffffff, fog: true } );
+   //          var sprite = new THREE.Sprite( nodeSpriteMat );
+   //          scene.add( sprite );
+
 			function buildNodes(ranks) {
 				var nodes = [];
 				var total = 0;
@@ -54,23 +62,42 @@
 
 			buildNodes(17);
 
-			function renderNode(plank,row,column,color) {
+			var hoverObj = undefined;
+			var mouse = new THREE.Vector2();
+
+			function onDocumentMouseMove( event ) {
+				event.preventDefault();
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( (event.clientY-5) / window.innerHeight ) * 2 + 1;
 			}
 
-			function renderLine(p1,r1,c1,p2,r2,c2) {
-
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
 			}
 
-			var plankCount = 1
+			document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+			window.addEventListener( 'resize', onWindowResize, false );
+
+			var raycaster= new THREE.Raycaster();
 			function render() {
 				requestAnimationFrame( render );
-				var angle=new Date().getTime()/1200.0;
+				var angle=new Date().getTime()/3600.0;
 				camera.position.z = Math.cos(angle)*2;
 				camera.position.x = Math.sin(angle)*2;
 				camera.lookAt(new THREE.Vector3(0,0,0));
-				// cube.position.x = Math.sin();
-				// cube.rotation.x += 0.03;
-				// cube.rotation.y += 0.01;
+
+				var vector = new THREE.Vector3( mouse.x, mouse.y, 1 ).unproject( camera );
+				raycaster.set( camera.position, vector.sub( camera.position ).normalize() );
+				var intersects = raycaster.intersectObjects( scene.children );
+				if (hoverObj) { hoverObj.material = nodeMat; }
+				if ( intersects.length > 0 ) {
+					//console.log("HIT");
+					hoverObj = intersects[ 0 ].object;
+					hoverObj.material=nodeSelMat;
+				}
+
 				renderer.render( scene, camera );
 			}
 			render();
