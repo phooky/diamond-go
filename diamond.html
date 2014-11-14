@@ -16,14 +16,46 @@
 				this.rank = rank;
 				this.x = x;
 				this.y = y;
-				this.links = [undefined,undefined,undefined,undefined];
+				this.links = [];
+				this.key = [rank,x,y];
 			}
 
+			linesGeo = new THREE.Geometry();
+
+			Node.prototype = {
+				constructor : Node,
+				makeMesh : function(ranks) {
+					var mesh = new THREE.Mesh(nodeGeo,nodeMat);
+					mesh.position.y = (ranks/2 - this.rank) * rankHeight;
+					mesh.position.x = this.x * rankDiag;
+					mesh.position.z = this.y * rankDiag;
+					this.mesh = mesh;
+					mesh.node = this;
+					scene.add(mesh);
+				},
+				link : function(nodeB) {
+					if (nodeB) {
+						this.links.push(nodeB);
+						nodeB.links.push(this);
+						linesGeo.vertices.push(this.mesh.position);
+						linesGeo.vertices.push(nodeB.mesh.position);
+						console.log(this.mesh.position,"-->",nodeB.mesh.position);
+					}
+				},
+				resolveDownLinks : function(nodes) {
+					this.link(nodes[[this.rank+1, this.x-1, this.y]]);
+					this.link(nodes[[this.rank+1, this.x+1, this.y]]);
+					this.link(nodes[[this.rank+1, this.x, this.y -1]]);
+					this.link(nodes[[this.rank+1, this.x, this.y +1]]);
+				}
+
+			}
 			var rankHeight = 0.1;
 			var rankDiag = rankHeight * Math.sqrt(2);
 			var nodeMat = new THREE.MeshBasicMaterial({color:0x00ff00});
 			var nodeSelMat = new THREE.MeshBasicMaterial({color:0x0000ff});
 			var nodeGeo = new THREE.BoxGeometry(0.04,0.04,0.04);
+			var linkMat = new THREE.LineBasicMaterial( { color: 0xffffff, opacity: 1, linewidth: 2.5 } );
 			// THREE.ImageUtils.crossOrigin ='file:///home/phooky/Repos/phooky/diamond-go/';
 			// console.log(THREE.ImageUtils.crossOrigin);
 			// var nodeTex = THREE.ImageUtils.loadTexture( "./node-tex.png" );
@@ -32,7 +64,8 @@
    //          scene.add( sprite );
 
 			function buildNodes(ranks) {
-				var nodes = [];
+				var nodes = {};
+				var nodelist = [];
 				var total = 0;
 				for (var i = 0; i < ranks; i++) {
 					// build rank
@@ -46,16 +79,17 @@
 						for (var y = 0; y < wy; y++) {
 							var yoff = -wy+1;
 							var node = new Node(i,xoff+2*x,yoff+2*y);
-							nodes.push(node);
-							var nodeCube = new THREE.Mesh(nodeGeo,nodeMat);
-							nodeCube.position.y = (ranks/2 - node.rank) * rankHeight;
-							nodeCube.position.x = node.x * rankDiag;
-							nodeCube.position.z = node.y * rankDiag;
-							scene.add(nodeCube);
+							node.makeMesh(ranks);
+							nodes[ node.key ] = node;
+							nodelist.push(node);
 						}
 					}
 					total += wx*wy;
 				}
+				for (var i = 0; i < nodelist.length; i++) {
+					nodelist[i].resolveDownLinks(nodes);
+				}
+				scene.add(new THREE.Line(linesGeo, linkMat, THREE.LinePieces));
 				console.log(total);
 				return nodes;
 			}
