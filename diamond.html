@@ -4,6 +4,7 @@
 	</head>
 	<body>
 		<script src="three.min.js"></script>
+		<script src="doban.js"></script>
 		<script type="text/javascript">
 			var scene = new THREE.Scene();
 			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 10000);
@@ -12,44 +13,20 @@
 			document.body.appendChild(renderer.domElement);
 			camera.position.z = 3;
 
-			function Node(rank,x,y) {
-				this.rank = rank;
-				this.x = x;
-				this.y = y;
-				this.links = [];
-				this.key = [rank,x,y];
-			}
 
-			linesGeo = new THREE.Geometry();
-
-			Node.prototype = {
-				constructor : Node,
-				makeMesh : function(ranks) {
+			var linesGeo = new THREE.Geometry();
+			var makeMesh = function(node,ranks) {
 					var mesh = new THREE.Mesh(nodeGeo,nodeMat);
-					mesh.position.y = (ranks/2 - this.rank) * rankHeight;
-					mesh.position.x = this.x * rankDiag;
-					mesh.position.z = this.y * rankDiag;
-					this.mesh = mesh;
-					mesh.node = this;
+					mesh.position.y = (ranks/2 - node.rank) * rankHeight;
+					mesh.position.x = node.x * rankDiag;
+					mesh.position.z = node.y * rankDiag;
+					node.mesh = mesh;
+					mesh.node = node;
 					scene.add(mesh);
-				},
-				link : function(nodeB) {
-					if (nodeB) {
-						this.links.push(nodeB);
-						nodeB.links.push(this);
-						linesGeo.vertices.push(this.mesh.position);
-						linesGeo.vertices.push(nodeB.mesh.position);
-						console.log(this.mesh.position,"-->",nodeB.mesh.position);
-					}
-				},
-				resolveDownLinks : function(nodes) {
-					this.link(nodes[[this.rank+1, this.x-1, this.y]]);
-					this.link(nodes[[this.rank+1, this.x+1, this.y]]);
-					this.link(nodes[[this.rank+1, this.x, this.y -1]]);
-					this.link(nodes[[this.rank+1, this.x, this.y +1]]);
-				}
-
 			}
+
+				//		linesGeo.vertices.push(this.mesh.position);
+				//		linesGeo.vertices.push(nodeB.mesh.position);
 			var rankHeight = 0.1;
 			var rankDiag = rankHeight * Math.sqrt(2);
 			var nodeMat = new THREE.MeshBasicMaterial({color:0x00ff00});
@@ -63,38 +40,11 @@
    //          var sprite = new THREE.Sprite( nodeSpriteMat );
    //          scene.add( sprite );
 
-			function buildNodes(ranks) {
-				var nodes = {};
-				var nodelist = [];
-				var total = 0;
-				for (var i = 0; i < ranks; i++) {
-					// build rank
-					var r;
-					if (i >= ranks/2) r = ranks-(i+1);
-					else r = i;
-					var wx = Math.floor(r/2) + 1;
-					var wy = Math.ceil(r/2) + 1;
-					for (var x = 0; x < wx; x++) {
-						var xoff = -wx+1;
-						for (var y = 0; y < wy; y++) {
-							var yoff = -wy+1;
-							var node = new Node(i,xoff+2*x,yoff+2*y);
-							node.makeMesh(ranks);
-							nodes[ node.key ] = node;
-							nodelist.push(node);
-						}
-					}
-					total += wx*wy;
-				}
-				for (var i = 0; i < nodelist.length; i++) {
-					nodelist[i].resolveDownLinks(nodes);
-				}
-				scene.add(new THREE.Line(linesGeo, linkMat, THREE.LinePieces));
-				console.log(total);
-				return nodes;
+			doban = new Doban(17);
+			for (var i = 0; i < doban.nodelist.length; i++) {
+				var n = doban.nodelist[i];
+				makeMesh(doban.nodelist[i],doban.ranks);
 			}
-
-			buildNodes(17);
 
 			var hoverObj = undefined;
 			var mouse = new THREE.Vector2();
