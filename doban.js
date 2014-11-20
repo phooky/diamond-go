@@ -44,7 +44,7 @@ function Doban(ranks) {
 	for (var i = 0; i < ranks; i++) {
 		buildRank(i,wx,wy);
 		var inc = 1;
-		if (i >= Math.ceil(ranks/2)) {
+		if (i >= Math.floor(ranks/2)) {
 			inc = -1; 
 		}
 		if (i % 2 == 1) {
@@ -54,7 +54,6 @@ function Doban(ranks) {
 		}
 	}
 	for (var i = 0; i < this.nodelist.length; i++) {
-		this.nodelist[i].resolveDownLinks(this.nodes);
 	}
 }
 
