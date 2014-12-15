@@ -33,7 +33,9 @@
    //          var sprite = new THREE.Sprite( nodeSpriteMat );
    //          scene.add( sprite );
 			var hoverObj = undefined;
+			var downOn = undefined;
 			var mouse = new THREE.Vector2();
+			var turn = 0;
 
 			function onDocumentMouseMove( event ) {
 				event.preventDefault();
@@ -41,6 +43,33 @@
 				mouse.y = event.clientY - canvasRect.top; //- ( event.clientY / window.innerHeight ) * 2 + 1;
 			}
 
+
+			function onDocumentMouseDown( event ) {
+				event.preventDefault();
+				mouse.x = event.clientX - canvasRect.left;
+				mouse.y = event.clientY - canvasRect.top;
+				downOn = hoverObj;
+			}
+
+			function onDocumentMouseUp( event ) {
+				event.preventDefault();
+				mouse.x = event.clientX - canvasRect.left;
+				mouse.y = event.clientY - canvasRect.top;
+				if (downOn == hoverObj) {
+					nodeClicked(hoverObj);
+				}
+				downOn = undefined;
+			}
+
+			function nodeClicked( node ) {
+				if (node.state != NODE_EMPTY) return;
+				if (turn % 2 == 0) {
+					node.state = NODE_WHITE;
+				} else {
+					node.state = NODE_BLACK;
+				}
+				turn++;
+			}
 			function onWindowResize() {
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
@@ -50,6 +79,8 @@
 			}
 
 			document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+			document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+			document.addEventListener( 'mouseup', onDocumentMouseUp, false );
 			window.addEventListener( 'resize', onWindowResize, false );
 
 			function pick() {
