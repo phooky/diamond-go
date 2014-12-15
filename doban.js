@@ -10,15 +10,39 @@ var nodeMaterial = [
 	new THREE.MeshBasicMaterial({color:0x000099})
 ];
 
+var rankHeight = 0.1;
+var rankDiag = rankHeight * Math.sqrt(2);
 
 // A node is a space on the doban.
-function Node(rank,x,y) {
+function Node(rank,x,y,index,doban) {
 	this.rank = rank;
+	this.doban = doban;
 	this.x = x;
 	this.y = y;
 	this.links = [];
+	this.index = index;
 	this.key = [rank,x,y];
 
+	var mesh = new THREE.Mesh(nodeGeometry,nodeMaterial[0]);
+	mesh.position.y = (doban.ranks/2 - rank) * rankHeight;
+	mesh.position.x = x * rankDiag;
+	mesh.position.z = y * rankDiag;
+	this.mesh = mesh;
+	var pickMat = new THREE.MeshBasicMaterial({vertexColors:THREE.VertexColors});
+	pickMat.blending = 0;
+	var pickMesh = new THREE.Mesh(nodeGeometry.clone(), pickMat);
+	pickMesh.geometry.faces.forEach( function( f ) {
+		var n = ( f instanceof THREE.Face3 ) ? 3 : 4;
+			for( var j = 0; j < n; j ++ ) {
+				f.vertexColors[ j ] = new THREE.Color(index+1000);
+			}
+	} );
+	this.pickMesh = pickMesh;
+	this.pickMesh.position.x = this.mesh.position.x;
+	this.pickMesh.position.y = this.mesh.position.y;
+	this.pickMesh.position.z = this.mesh.position.z;
+	doban.nodes[ this.key ] = this;
+	doban.nodelist.push(this);
 }
 
 Node.prototype = {
@@ -27,6 +51,9 @@ Node.prototype = {
 		if (nodeB) {
 			this.links.push(nodeB);
 			nodeB.links.push(this);
+			this.doban.linesGeo.vertices.push(this.mesh.position);
+			this.doban.linesGeo.vertices.push(nodeB.mesh.position);
+
 		}
 	},
 	resolveDownLinks : function(nodes) {
@@ -37,43 +64,6 @@ Node.prototype = {
 	}
 }
 
-
-
-			var linesGeo = new THREE.Geometry();
-			var makeMesh = function(node,ranks) {
-					var mesh = new THREE.Mesh(nodeGeo,nodeMat);
-					mesh.position.y = (ranks/2 - node.rank) * rankHeight;
-					mesh.position.x = node.x * rankDiag;
-					mesh.position.z = node.y * rankDiag;
-					node.mesh = mesh;
-					mesh.node = node;
-					scene.add(mesh);
-
-					var pickMat = new THREE.MeshBasicMaterial({vertexColors:THREE.VertexColors});
-					pickMat.blending = 0;
-					var pickMesh = new THREE.Mesh(nodeGeo.clone(), pickMat);
-					pickMesh.geometry.faces.forEach( function( f ) {
-						var n = ( f instanceof THREE.Face3 ) ? 3 : 4;
-						for( var j = 0; j < n; j ++ ) {
-							f.vertexColors[ j ] = new THREE.Color(node.index+1000);
-						}
-					} );
-					pickMesh.position.y = (ranks/2 - node.rank) * rankHeight;
-					pickMesh.position.x = node.x * rankDiag;
-					pickMesh.position.z = node.y * rankDiag;
-					pickingScene.add(pickMesh);
-			}
-
-			var rankHeight = 0.1;
-			var rankDiag = rankHeight * Math.sqrt(2);
-			var nodeMat = new THREE.MeshBasicMaterial({color:0x00ff00});
-			var nodeSelMat = new THREE.MeshBasicMaterial({color:0x0000ff});
-			var nodeGeo = new THREE.BoxGeometry(0.04,0.04,0.04);
-			var linkMat = new THREE.LineBasicMaterial( { color: 0x777777, opacity: 1, linewidth: 3 } );
-			var linesMesh = new THREE.Line(linesGeo,linkMat,THREE.LinePieces);
-			scene.add(linesMesh);
-
-
 function Doban(ranks) {
 	this.nodes = {};
 	this.nodelist = [];
@@ -82,22 +72,15 @@ function Doban(ranks) {
 	var wy = 1;
 	var doban = this;
 	var index = 0;
-	function buildRank(rank,wx,wy) {
+	// Build ranks of nodes
+	for (var i = 0; i < ranks; i++) {
 		var xoff = -wx+1;
 		var yoff = -wy+1;
 		for (var x = 0; x < wx; x++) {
 			for (var y = 0; y < wy; y++) {
-				var node = new Node(rank,xoff+2*x,yoff+2*y);
-				doban.nodes[ node.key ] = node;
-				node.index = index;
-				index++;
-				doban.nodelist.push(node);
+				var node = new Node(i,xoff+2*x,yoff+2*y,index++,this);
 			}
 		}
-	}
-	// Build ranks of nodes
-	for (var i = 0; i < ranks; i++) {
-		buildRank(i,wx,wy);
 		var inc = 1;
 		if (i >= Math.floor(ranks/2)) {
 			inc = -1; 
@@ -108,13 +91,27 @@ function Doban(ranks) {
 			wy += inc;
 		}
 	}
+	this.linesGeo = new THREE.Geometry();
+	this.linesMat = new THREE.LineBasicMaterial( { color: 0x777777, opacity: 1, linewidth: 2 } );
 	// Create links between nodes
 	for (var i = 0; i < this.nodelist.length; i++) {
 		this.nodelist[i].resolveDownLinks(this.nodes);
 	}
-	// Create meshes for nodes
+	// Create link lines
+	this.linesMesh = new THREE.Line(this.linesGeo,this.linesMat,THREE.LinePieces);
 }
 
 Doban.prototype = {
-	constructor : Doban
+	constructor : Doban,
+	addToScene : function(scene) {
+		for (var i = 0; i < this.nodelist.length; i++) {
+			scene.add(this.nodelist[i].mesh);
+		}
+		scene.add(this.linesMesh);
+	},
+	addToPickingScene : function(pickingScene) {
+		for (var i = 0; i < this.nodelist.length; i++) {
+			pickingScene.add(this.nodelist[i].pickMesh);
+		}
+	}
 }
