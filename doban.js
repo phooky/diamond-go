@@ -5,9 +5,12 @@ var NODE_WHITE = 1;
 var NODE_BLACK = 2;
 
 var nodeMaterial = [
-	new THREE.MeshBasicMaterial({color:0x009900}),
-	new THREE.MeshBasicMaterial({color:0x990000}),
-	new THREE.MeshBasicMaterial({color:0x000099})
+	new THREE.MeshBasicMaterial({color:0x00bb00}),
+	new THREE.MeshBasicMaterial({color:0xbb0000}),
+	new THREE.MeshBasicMaterial({color:0x0000bb}),
+	new THREE.MeshBasicMaterial({color:0x00ff00}),
+	new THREE.MeshBasicMaterial({color:0xff0000}),
+	new THREE.MeshBasicMaterial({color:0x0000ff})
 ];
 
 var rankHeight = 0.1;
@@ -22,7 +25,7 @@ function Node(rank,x,y,index,doban) {
 	this.links = [];
 	this.index = index;
 	this.key = [rank,x,y];
-
+	this.state = NODE_EMPTY;
 	var mesh = new THREE.Mesh(nodeGeometry,nodeMaterial[0]);
 	mesh.position.y = (doban.ranks/2 - rank) * rankHeight;
 	mesh.position.x = x * rankDiag;
@@ -47,6 +50,10 @@ function Node(rank,x,y,index,doban) {
 
 Node.prototype = {
 	constructor : Node,
+	getMaterial : function(isHighlighted) {
+		if (isHighlighted) { return nodeMaterial[this.state+3]; }
+		return nodeMaterial[this.state];
+	},
 	link : function(nodeB) {
 		if (nodeB) {
 			this.links.push(nodeB);
