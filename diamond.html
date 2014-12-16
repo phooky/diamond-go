@@ -8,9 +8,12 @@
 		<script type="text/javascript">
 			var	boardSize = 13;
 			var cameraDistance = 1.7;
+			var pan = new THREE.Vector2();
+			var azimuth = 0.0;
+			var altitude = 0.0;
 
 			var scene = new THREE.Scene();
-			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 10000);
+			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 10000);
 			var renderer = new THREE.WebGLRenderer();
 			self.renderer.setSize( window.innerWidth, window.innerHeight );
 			self.renderer.sortObjects =false;
@@ -35,26 +38,25 @@
 			var hoverObj = undefined;
 			var downOn = undefined;
 			var mouse = new THREE.Vector2();
-			var turn = 0;
+
+			function updateMousePosition(event) {
+				event.preventDefault();
+				mouse.x = event.offsetX; 
+				mouse.y = event.offsetY; 
+			}
 
 			function onDocumentMouseMove( event ) {
-				event.preventDefault();
-				mouse.x = event.clientX - canvasRect.left; // ( event.clientX / window.innerWidth ) * 2 - 1;
-				mouse.y = event.clientY - canvasRect.top; //- ( event.clientY / window.innerHeight ) * 2 + 1;
+				updateMousePosition(event);
 			}
 
 
 			function onDocumentMouseDown( event ) {
-				event.preventDefault();
-				mouse.x = event.clientX - canvasRect.left;
-				mouse.y = event.clientY - canvasRect.top;
+				updateMousePosition(event);
 				downOn = hoverObj;
 			}
 
 			function onDocumentMouseUp( event ) {
-				event.preventDefault();
-				mouse.x = event.clientX - canvasRect.left;
-				mouse.y = event.clientY - canvasRect.top;
+				updateMousePosition(event);
 				if (downOn == hoverObj) {
 					nodeClicked(hoverObj);
 				}
@@ -62,7 +64,6 @@
 			}
 
 			function onDocumentMouseWheel( event ) {
-				console.log("wd is ",event.wheelDelta);
 				if (event.wheelDelta > 0) {
 					cameraDistance -= 0.02;
 				} else {
@@ -72,13 +73,9 @@
 
 			function nodeClicked( node ) {
 				if (node.state != NODE_EMPTY) return;
-				if (turn % 2 == 0) {
-					node.state = NODE_WHITE;
-				} else {
-					node.state = NODE_BLACK;
-				}
-				turn++;
+				doban.playStone(node);
 			}
+
 			function onWindowResize() {
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
@@ -120,9 +117,10 @@
 
 				pick();
 
-				var angle=new Date().getTime()/7200.0;
-				camera.position.z = Math.cos(angle)*cameraDistance;
-				camera.position.x = Math.sin(angle)*cameraDistance;
+				var a = Math.cos(altitude) * cameraDistance;
+				camera.position.z = Math.cos(azimuth)*a;
+				camera.position.x = Math.sin(azimuth)*a;
+				camera.position.y = Math.sin(altitude)*cameraDistance;
 				camera.lookAt(new THREE.Vector3(0,0,0));
 				self.renderer.render( scene, camera );
 			}

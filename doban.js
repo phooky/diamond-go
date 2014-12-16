@@ -71,6 +71,11 @@ Node.prototype = {
 	}
 }
 
+function Game() {
+	this.currentTurn = 0;
+	this.history = [];
+}
+
 function Doban(ranks) {
 	this.nodes = {};
 	this.nodelist = [];
@@ -106,6 +111,7 @@ function Doban(ranks) {
 	}
 	// Create link lines
 	this.linesMesh = new THREE.Line(this.linesGeo,this.linesMat,THREE.LinePieces);
+	this.game = new Game();
 }
 
 Doban.prototype = {
@@ -120,5 +126,21 @@ Doban.prototype = {
 		for (var i = 0; i < this.nodelist.length; i++) {
 			pickingScene.add(this.nodelist[i].pickMesh);
 		}
+	},
+	reset : function() {
+		this.game = new Game();
+		for (var i = 0; i < this.nodelist.length; i++) {
+			this.nodelist[i].state = NODE_EMPTY;
+		}
+	},
+	getTurn : function() { return this.game.currentTurn; },
+	playStone : function(node) {
+		this.game.history.push(node.index);
+		if (this.game.currentTurn % 2 == 0) {
+			node.state = NODE_WHITE;
+		} else {
+			node.state = NODE_BLACK;
+		}
+		this.game.currentTurn++;
 	}
 }
