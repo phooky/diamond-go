@@ -61,6 +61,15 @@
 				downOn = undefined;
 			}
 
+			function onDocumentMouseWheel( event ) {
+				console.log("wd is ",event.wheelDelta);
+				if (event.wheelDelta > 0) {
+					cameraDistance -= 0.02;
+				} else {
+					cameraDistance += 0.02;
+				}
+			}
+
 			function nodeClicked( node ) {
 				if (node.state != NODE_EMPTY) return;
 				if (turn % 2 == 0) {
@@ -81,6 +90,7 @@
 			document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 			document.addEventListener( 'mousedown', onDocumentMouseDown, false );
 			document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+			document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
 			window.addEventListener( 'resize', onWindowResize, false );
 
 			function pick() {
