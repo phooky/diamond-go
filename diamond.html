@@ -27,7 +27,7 @@
 
 			pickingTexture.generateMipmaps = false;
 
-			doban = new Doban(13);
+			doban = new Doban(13,grayTheme);
 			doban.addToScene(scene);
 			doban.addToPickingScene(pickingScene);
 			// THREE.ImageUtils.crossOrigin ='file:///home/phooky/Repos/phooky/diamond-go/';
@@ -92,6 +92,7 @@
 			window.addEventListener( 'resize', onWindowResize, false );
 			function pick() {
 				//render the picking scene off-screen
+				self.renderer.setClearColor(0x0000000); // avoid spurious obj hits on bg
 				self.renderer.render( pickingScene, camera, pickingTexture );
 				var gl = self.renderer.getContext();
 				//read the pixel under the mouse from the texture
@@ -109,9 +110,6 @@
 
 			}
 
-
-
-
 			function render() {
 				requestAnimationFrame( render );
 
@@ -122,6 +120,7 @@
 				camera.position.x = Math.sin(azimuth)*a;
 				camera.position.y = Math.sin(altitude)*cameraDistance;
 				camera.lookAt(new THREE.Vector3(0,0,0));
+				self.renderer.setClearColor(doban.theme.background); // avoid spurious obj hits on bg
 				self.renderer.render( scene, camera );
 
 				KeyboardJS.activeKeys().forEach(function(key) {

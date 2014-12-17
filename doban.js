@@ -4,14 +4,35 @@ var NODE_EMPTY = 0;
 var NODE_WHITE = 1;
 var NODE_BLACK = 2;
 
-var nodeMaterial = [
-	new THREE.MeshBasicMaterial({color:0x00bb00}),
-	new THREE.MeshBasicMaterial({color:0xbb0000}),
-	new THREE.MeshBasicMaterial({color:0x0000bb}),
-	new THREE.MeshBasicMaterial({color:0x00ff00}),
-	new THREE.MeshBasicMaterial({color:0xff0000}),
-	new THREE.MeshBasicMaterial({color:0x0000ff})
-];
+function DobanTheme(empty,white,black,emptyHi,whiteHi,blackHi,line,lineWidth,bg) {
+	this.nodeMats = [ 
+		new THREE.MeshBasicMaterial({color:empty}),
+		new THREE.MeshBasicMaterial({color:white}),
+		new THREE.MeshBasicMaterial({color:black}) ];
+	this.nodeHiMats = [
+		new THREE.MeshBasicMaterial({color:emptyHi}),
+		new THREE.MeshBasicMaterial({color:whiteHi}),
+		new THREE.MeshBasicMaterial({color:blackHi}) ];
+	this.lineMat = new THREE.LineBasicMaterial( { color: line, opacity: 1, linewidth: lineWidth } );
+	this.background = bg;
+}
+
+DobanTheme.prototype = {
+	constructor : Node,
+	getNodeMaterial : function(highlighted,state) {
+		if (highlighted) { return this.nodeHiMats[state]; }
+		return this.nodeMats[state];
+	}
+};
+
+var defaultTheme = new DobanTheme(0x00bb00,0xbb00000,0x0000bb,0x00ff00,0xff0000,0x00000ff,
+	0x777777, 2, 0);
+
+var grayTheme = new DobanTheme( 
+	0x909090, 0xeeeeee, 0x000000,
+	0x999999, 0xffffff, 0x222222,
+	0x666666, 3,
+	0x808080);
 
 var rankHeight = 0.1;
 var rankDiag = rankHeight * Math.sqrt(2);
@@ -26,7 +47,8 @@ function Node(rank,x,y,index,doban) {
 	this.index = index;
 	this.key = [rank,x,y];
 	this.state = NODE_EMPTY;
-	var mesh = new THREE.Mesh(nodeGeometry,nodeMaterial[0]);
+	var mesh = new THREE.Mesh(nodeGeometry,
+		this.doban.theme.getNodeMaterial(false,NODE_EMPTY));
 	mesh.position.y = (doban.ranks/2 - rank) * rankHeight;
 	mesh.position.x = x * rankDiag;
 	mesh.position.z = y * rankDiag;
@@ -51,8 +73,7 @@ function Node(rank,x,y,index,doban) {
 Node.prototype = {
 	constructor : Node,
 	getMaterial : function(isHighlighted) {
-		if (isHighlighted) { return nodeMaterial[this.state+3]; }
-		return nodeMaterial[this.state];
+		return this.doban.theme.getNodeMaterial(isHighlighted,this.state);
 	},
 	link : function(nodeB) {
 		if (nodeB) {
@@ -76,10 +97,15 @@ function Game() {
 	this.history = [];
 }
 
-function Doban(ranks) {
+function Doban(ranks,theme) {
 	this.nodes = {};
 	this.nodelist = [];
 	this.ranks = ranks;
+	if (theme) {
+		this.theme = theme;
+	} else {
+		this.theme = defaultTheme;
+	}
 	var wx = 1;
 	var wy = 1;
 	var doban = this;
@@ -104,13 +130,12 @@ function Doban(ranks) {
 		}
 	}
 	this.linesGeo = new THREE.Geometry();
-	this.linesMat = new THREE.LineBasicMaterial( { color: 0x777777, opacity: 1, linewidth: 2 } );
 	// Create links between nodes
 	for (var i = 0; i < this.nodelist.length; i++) {
 		this.nodelist[i].resolveDownLinks(this.nodes);
 	}
 	// Create link lines
-	this.linesMesh = new THREE.Line(this.linesGeo,this.linesMat,THREE.LinePieces);
+	this.linesMesh = new THREE.Line(this.linesGeo,this.theme.lineMat,THREE.LinePieces);
 	this.game = new Game();
 }
 
