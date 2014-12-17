@@ -4,6 +4,7 @@
 	</head>
 	<body>
 		<script src="three.min.js"></script>
+		<script src="keyboard.js"></script>
 		<script src="doban.js"></script>
 		<script type="text/javascript">
 			var	boardSize = 13;
@@ -89,7 +90,6 @@
 			document.addEventListener( 'mouseup', onDocumentMouseUp, false );
 			document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
 			window.addEventListener( 'resize', onWindowResize, false );
-
 			function pick() {
 				//render the picking scene off-screen
 				self.renderer.render( pickingScene, camera, pickingTexture );
@@ -123,6 +123,16 @@
 				camera.position.y = Math.sin(altitude)*cameraDistance;
 				camera.lookAt(new THREE.Vector3(0,0,0));
 				self.renderer.render( scene, camera );
+
+				KeyboardJS.activeKeys().forEach(function(key) {
+					if (key == 'left') azimuth -= 0.02;
+					else if (key == 'right') azimuth += 0.02;
+					else if (key == 'up') altitude += 0.02;
+					else if (key == 'down') altitude -= 0.02;
+					// clamp
+					if (altitude > (Math.PI/2)) { altitude = Math.PI/2; }
+					if (altitude < -(Math.PI/2)) { altitude = -Math.PI/2; }
+				});
 			}
 			render();
 		</script>
