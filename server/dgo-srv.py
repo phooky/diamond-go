@@ -4,6 +4,9 @@ import socket
 from threading import Thread, Event, Semaphore
 import sys
 import time
+import json
+
+VERSION=1
 PORT=3904
 
 # Summary of interactions:
@@ -21,31 +24,63 @@ PORT=3904
 # S7) Offer On has been accepted/declined/timed out. (Game is Gn)
 # C7) Acknowledged.
 
-import json
+class NotIdentified(Exception):
+    pass
 
 class DiamondGoClient(Thread):
+
+    def check_ident(self):
+        if not self.identity:
+            raise NotIdentified()
+
+    def do_hello(self,command):
+        self.handle = command['handle']
+        self.identity = { 'handle': self.handle, 'addr': self.addr } 
+        self.send( {
+            'msgt' : 'hello_ack',
+            'id' : self.identity,
+            } )
+            
+    handlers = {
+            'hello' : do_hello,
+            }
+
     def __init__(self,server,socket,addr):
         Thread.__init__(self)
         self.server = server
         self.sock = socket
         self.addr = addr
         self.identity = None
+        self.send_sem = Semaphore()
 
     def process(self,command):
         obj = json.loads(command)
+        try:
+            msgt = obj['msgt']
+        except KeyError:
+            self.error('missing msgt field')
+            return
+        try:
+            dofn = DiamondGoClient.handlers[msgt]
+            dofn(self,obj)
+        except KeyError:
+            self.error('unrecognized msgt field')
 
     def error(self,message):
-        self.reply( {
+        self.send( {
+            'msgt' : 'error',
             'error' : message
             })
 
-    def reply(self,obj):
+    def send(self,obj):
+        self.send_sem.acquire()
         self.sock.send(json.dumps(obj).encode()+b'\n')
+        self.send_sem.release()
 
     def run(self):
         self.running = True
         dangling = b''
-        self.sock.settimeout(4)
+        self.sock.settimeout(2)
         while self.running:
             try:
                 dangling = dangling + self.sock.recv(200)
@@ -96,15 +131,14 @@ class DiamondGoServer:
         except KeyboardInterrupt:
             print("Shutting down.")
         finally:
-            self.client_sem.acquire()
-            for c in self.active_clients: c.running = False
-            self.client_sem.release()
             self.sock.close()
+            self.client_sem.acquire()
+            ac_copy = self.active_clients.copy()
+            self.client_sem.release()
+            for c in ac_copy: c.running = False
+            for c in ac_copy: c.join()
 
 if __name__ == '__main__':
     srv = DiamondGoServer()
     srv.run()
-    sys.stdout.write("done\n")
-    time.sleep(5)
-    sys.stdout.write("exiting.\n")
 
