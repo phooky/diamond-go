@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 
-import socket
-from threading import Thread, Event, Semaphore
-import sys
-import time
+from autobahn.asyncio.websocket import WebSocketServerProtocol, WebSocketServerFactory
+from threading import Semaphore
 import json
 
 VERSION=1
@@ -27,118 +25,77 @@ PORT=3904
 class NotIdentified(Exception):
     pass
 
-class DiamondGoClient(Thread):
+active_clients = []
+active_clients_sem = Semaphore()
+
+class DiamondGoProtocol(WebSocketServerProtocol):
+
+    def send_json(self, obj):
+        self.sendMessage(json.dumps(obj,ensure_ascii=False).encode('utf-8'),isBinary=False)
+
+    def do_hello(self,command):
+        print("do hello")
+        self.handle = command['handle']
+        self.identity = { 'handle': self.handle, 'addr': self.addr } 
+        self.send_json( {
+            't' : 'hello_ack',
+            'id' : self.identity,
+            } )
+        print("done hello")
+
+    handlers = {
+            'hello' : do_hello,
+            }
+
+    def onConnect(self,info):
+        self.identity = None
+        self.addr = info.peer
+        #print("Connecting {0},{1}.".format(info,type(info)))
+        #print(dir(self))
+
+    def onOpen(self):
+        active_clients_sem.acquire()
+        active_clients.append(self)
+        active_clients_sem.release()
+        print("Opened.")
+
+    def onClose(self,wasClean,code,reason):
+        active_clients_sem.acquire()
+        try:
+            active_clients.remove(self)
+        except:
+            pass
+        finally:
+            active_clients_sem.release()
+        print("Closed; {0} and {1}".format(code,reason))
+    
+    def onMessage(self, payload, isBinary):
+        print("message {0} {1}".format(payload,isBinary))
+        try:
+            obj = json.loads(payload.decode())
+            handler = DiamondGoProtocol.handlers[obj['t']]
+            handler(self,obj)
+            return "hello there ugh"
+        except Exception as e:
+            print(e)
 
     def check_ident(self):
         if not self.identity:
             raise NotIdentified()
 
-    def do_hello(self,command):
-        self.handle = command['handle']
-        self.identity = { 'handle': self.handle, 'addr': self.addr } 
-        self.send( {
-            'msgt' : 'hello_ack',
-            'id' : self.identity,
-            } )
-            
-    handlers = {
-            'hello' : do_hello,
-            }
-
-    def __init__(self,server,socket,addr):
-        Thread.__init__(self)
-        self.server = server
-        self.sock = socket
-        self.addr = addr
-        self.identity = None
-        self.send_sem = Semaphore()
-
-    def process(self,command):
-        obj = json.loads(command)
-        try:
-            msgt = obj['msgt']
-        except KeyError:
-            self.error('missing msgt field')
-            return
-        try:
-            dofn = DiamondGoClient.handlers[msgt]
-            dofn(self,obj)
-        except KeyError:
-            self.error('unrecognized msgt field')
-
-    def error(self,message):
-        self.send( {
-            'msgt' : 'error',
-            'error' : message
-            })
-
-    def send(self,obj):
-        self.send_sem.acquire()
-        self.sock.send(json.dumps(obj).encode()+b'\n')
-        self.send_sem.release()
-
-    def run(self):
-        self.running = True
-        dangling = b''
-        self.sock.settimeout(2)
-        while self.running:
-            try:
-                dangling = dangling + self.sock.recv(200)
-                if len(dangling) > 10000:
-                    # flood or worse; drop this client
-                    self.running = False
-                elif dangling.find(b'\n') != -1:
-                    (command, dangling) = dangling.split(b'\n',1)
-                    command = command.decode().strip()
-                    try:
-                        self.process(command)
-                    except Exception as e:
-                        sys.stderr.write("Could not process command {0}, {1}\n".format(command,e))
-                        self.error("Could not parse command")
-            except socket.timeout:
-                pass
-            finally:
-                pass
-        self.sock.close()
-        sys.stdout.write("Closing socket.\n")
-        self.server.remove(self)
-            
-class DiamondGoServer:
-    def __init__(self,host="localhost",port=PORT):
-        self.sock = socket.socket()
-        self.sock.bind((host,port))
-        self.active_clients = []
-        self.client_sem = Semaphore()
-
-    def remove(self,client):
-        self.client_sem.acquire()
-        try:
-            self.active_clients.remove(client)
-        except ValueError as v:
-            sys.stderr.print("Trying to remove missing client")
-        self.client_sem.release()
-
-    def run(self):
-        self.sock.listen(5)
-        try:
-            while True:
-                insock,inaddr = self.sock.accept()
-                client = DiamondGoClient(self,insock,inaddr)
-                self.client_sem.acquire()
-                self.active_clients.append(client)
-                self.client_sem.release()
-                client.start()
-        except KeyboardInterrupt:
-            print("Shutting down.")
-        finally:
-            self.sock.close()
-            self.client_sem.acquire()
-            ac_copy = self.active_clients.copy()
-            self.client_sem.release()
-            for c in ac_copy: c.running = False
-            for c in ac_copy: c.join()
-
 if __name__ == '__main__':
-    srv = DiamondGoServer()
-    srv.run()
+    import asyncio
+    factory = WebSocketServerFactory("ws://127.0.0.1:{0}".format(PORT),debug=False)
+    factory.protocol = DiamondGoProtocol
+
+    loop = asyncio.get_event_loop()
+    coro = loop.create_server(factory, '127.0.0.1', PORT)
+    server = loop.run_until_complete(coro)
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.close()
+        loop.close()
 
