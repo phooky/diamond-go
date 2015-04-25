@@ -1,178 +1,225 @@
 <html>
-	<head>
-		<title>Diamond Go</title>
-	</head>
-	<body>
-        <div class="controlbox" style="z-index:2; position:absolute; left:0px; top:0px">
-            Handle: <input id="handle_t" type="text" size=20> <button id="connect_b" type="button">connect</button>
-        </div>
-        <div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
+<head>
+	<title>Diamond Go</title>
+	<link rel="stylesheet" type="text/css" href="diamond.css">
+</head>
+<body>
+	<!-- Hidden text chunks. -->
+	<div class="hidden" id="t_connecting">Connecting...</div>
+	<div class="layerbox">
+		<div class="lb_title" id="title_d">Welcome</div>
+		<div class="lb_body" id="body_d">
+			<p>Hello, and welcome to Diamond Go.</p>
+			<p>Please choose a username and click the button below to connect to the server.</p>
+			<p>Name: <input id="handle_t" type="text" size=20></p>
+			<button id="connect_b" type="button">connect</button>
+		</div>
+	</div>	
+	<div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
 
-		<script src="three.min.js"></script>
-		<script src="keyboard.js"></script>
-		<script src="doban.js"></script>
-		<script type="text/javascript">
-			var	boardSize = 13;
-			var cameraDistance = 1.7;
-			var pan = new THREE.Vector2();
-			var azimuth = 0.0;
-			var altitude = 0.0;
-            var needsRender = true;
-            var needsPick = true;
+	<script src="three.min.js"></script>
+	<script src="keyboard.js"></script>
+	<script src="doban.js"></script>
+	<script type="text/javascript">
+		var server = undefined;
+		var identity = undefined;
 
-			var scene = new THREE.Scene();
-			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 10000);
-			var renderer = new THREE.WebGLRenderer();
-			self.renderer.setSize( window.innerWidth, window.innerHeight );
-			self.renderer.sortObjects =false;
-			var container = document.getElementById('ThreeJS')
-            container.appendChild(self.renderer.domElement);
-            //document.body.appendChild(self.renderer.domElement);
-			camera.position.z = cameraDistance;
-
-			var pickingScene = new THREE.Scene();
-			var pickingTexture = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight );
-			var canvasRect = renderer.domElement.getBoundingClientRect();
-
-			pickingTexture.generateMipmaps = false;
-
-			doban = new Doban(13,grayTheme);
-			doban.addToScene(scene);
-			doban.addToPickingScene(pickingScene);
-			// THREE.ImageUtils.crossOrigin ='file:///home/phooky/Repos/phooky/diamond-go/';
-			// console.log(THREE.ImageUtils.crossOrigin);
-			// var nodeTex = THREE.ImageUtils.loadTexture( "./node-tex.png" );
-   //          var nodeSpriteMat = new THREE.SpriteMaterial( { map: nodeTex, color: 0xffffff, fog: true } );
-   //          var sprite = new THREE.Sprite( nodeSpriteMat );
-   //          scene.add( sprite );
-			var hoverObj = undefined;
-			var downOn = undefined;
-			var mouse = new THREE.Vector2();
-
-            var server = undefined;
-            var identity = undefined;
-
-            // Set up callbacks
-            document.getElementById('connect_b').addEventListener('click', function() {
-                    //document.getElementById('handle_t').
-                    alert('okay okay');
-                    });
-            function touch() {
-                needsRender = true;
-                needsPick = true;
-            }
-
-			function updateMousePosition(event) {
-				event.preventDefault();
-				mouse.x = event.offsetX; 
-				mouse.y = event.offsetY; 
+		function setTitle(txt) { document.getElementById("title_d").innerHTML=txt; }
+		function servermsg(evt) {
+			o = JSON.parse(evt.data);
+			if (o["t"] == "hello_ack") {
+				identity = o["id"];
+				setTitle("Connected as "+identity["handle"]);
 			}
+		}
+		// Set up callbacks
+		document.getElementById('connect_b').addEventListener('click', function() {
+			var handle = document.getElementById('handle_t').value;
+			server = new WebSocket("ws://127.0.0.1:3904");
+			setTitle("Connecting to server...");
+			server.onmessage = servermsg;
+			server_send({
+				"t": "hello",
+				"handle": handle
+			});
+		});
 
-			function onDocumentMouseMove( event ) {
-				updateMousePosition(event);
+
+		var boardSize = 13;
+		var cameraDistance = 1.7;
+		var pan = new THREE.Vector2();
+		var azimuth = 0.0;
+		var altitude = 0.0;
+		var needsRender = true;
+		var needsPick = true;
+
+		var scene = new THREE.Scene();
+		var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+		var renderer = new THREE.WebGLRenderer();
+		self.renderer.setSize(window.innerWidth, window.innerHeight);
+		self.renderer.sortObjects = false;
+		var container = document.getElementById('ThreeJS')
+		container.appendChild(self.renderer.domElement);
+		//document.body.appendChild(self.renderer.domElement);
+		camera.position.z = cameraDistance;
+
+		var pickingScene = new THREE.Scene();
+		var pickingTexture = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+		var canvasRect = renderer.domElement.getBoundingClientRect();
+
+		pickingTexture.generateMipmaps = false;
+
+		doban = new Doban(13, grayTheme);
+		doban.addToScene(scene);
+		doban.addToPickingScene(pickingScene);
+		var hoverObj = undefined;
+		var downOn = undefined;
+		var mouse = new THREE.Vector2();
+
+		function server_send(message) {
+			if (server.readyState === 1) {
+				server.send(JSON.stringify(message));
+			} else {
+				setTimeout(function() {
+					server_send(message);
+				}, 0.5);
 			}
+		}
+
+		function touch() {
+			needsRender = true;
+			needsPick = true;
+		}
+
+		function updateMousePosition(event) {
+			event.preventDefault();
+			mouse.x = event.offsetX;
+			mouse.y = event.offsetY;
+		}
+
+		function onDocumentMouseMove(event) {
+			updateMousePosition(event);
+		}
 
 
-			function onDocumentMouseDown( event ) {
-                touch();
-				updateMousePosition(event);
-				downOn = hoverObj;
+		function onDocumentMouseDown(event) {
+			touch();
+			updateMousePosition(event);
+			downOn = hoverObj;
+		}
+
+		function onDocumentMouseUp(event) {
+			touch();
+			updateMousePosition(event);
+			if (downOn == hoverObj) {
+				nodeClicked(hoverObj);
 			}
+			downOn = undefined;
+		}
 
-			function onDocumentMouseUp( event ) {
-                touch();
-				updateMousePosition(event);
-				if (downOn == hoverObj) {
-					nodeClicked(hoverObj);
+		function onDocumentMouseWheel(event) {
+			touch();
+			if (event.wheelDelta > 0) {
+				cameraDistance -= 0.02;
+			} else {
+				cameraDistance += 0.02;
+			}
+		}
+
+		function nodeClicked(node) {
+			touch();
+			if (node.state != NODE_EMPTY) return;
+			doban.playStone(node);
+			node.mesh.material = node.getMaterial(false);
+		}
+
+		function onWindowResize() {
+			touch();
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			self.renderer.setSize(window.innerWidth, window.innerHeight);
+			pickingTexture = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+			canvasRect = renderer.domElement.getBoundingClientRect();
+		}
+
+		container.addEventListener('mousemove', onDocumentMouseMove, false);
+		container.addEventListener('mousedown', onDocumentMouseDown, false);
+		container.addEventListener('mouseup', onDocumentMouseUp, false);
+		container.addEventListener('mousewheel', onDocumentMouseWheel, false);
+		window.addEventListener('resize', onWindowResize, false);
+
+		function pick() {
+			//render the picking scene off-screen
+			if (needsPick) {
+				self.renderer.setClearColor(0x0000000); // avoid spurious obj hits on bg
+				self.renderer.render(pickingScene, camera, pickingTexture);
+				needsPick = false;
+			} else {
+				self.renderer.setRenderTarget(pickingTexture);
+			}
+			var pickCtxt = self.renderer.getContext();
+			//var gl = self.renderer.getContext();
+			//read the pixel under the mouse from the texture
+			var pixelBuffer = new Uint8Array(4);
+			pickCtxt.readPixels(mouse.x, window.innerHeight - mouse.y, 1, 1, pickCtxt.RGBA, pickCtxt.UNSIGNED_BYTE, pixelBuffer);
+			//interpret the pixel as an ID
+			var id = (pixelBuffer[0] << 16) | (pixelBuffer[1] << 8) | (pixelBuffer[2]);
+			var newHoverObj = null;
+			if (id != 0) {
+				newHoverObj = doban.nodelist[id - 1000];
+			}
+			if (newHoverObj != hoverObj) {
+				needsRender = true;
+				if (hoverObj) {
+					hoverObj.mesh.material = hoverObj.getMaterial(false);
 				}
-				downOn = undefined;
-			}
-
-			function onDocumentMouseWheel( event ) {
-                touch();
-				if (event.wheelDelta > 0) {
-					cameraDistance -= 0.02;
-				} else {
-					cameraDistance += 0.02;
+				hoverObj = newHoverObj;
+				if (hoverObj) {
+					hoverObj.mesh.material = hoverObj.getMaterial(true);
 				}
 			}
 
-			function nodeClicked( node ) {
-                touch();
-				if (node.state != NODE_EMPTY) return;
-				doban.playStone(node);
-                node.mesh.material=node.getMaterial(false);
-			}
+		}
 
-			function onWindowResize() {
-                touch();
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
-				self.renderer.setSize( window.innerWidth, window.innerHeight );
-				pickingTexture = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight );
-				canvasRect = renderer.domElement.getBoundingClientRect();
-			}
+		function render() {
+			requestAnimationFrame(render);
+			pick();
 
-			container.addEventListener( 'mousemove', onDocumentMouseMove, false );
-			container.addEventListener( 'mousedown', onDocumentMouseDown, false );
-			container.addEventListener( 'mouseup', onDocumentMouseUp, false );
-			container.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
-			window.addEventListener( 'resize', onWindowResize, false );
-			function pick() {
-				//render the picking scene off-screen
-                if (needsPick) {
-				    self.renderer.setClearColor(0x0000000); // avoid spurious obj hits on bg
-				    self.renderer.render( pickingScene, camera, pickingTexture );
-                    needsPick = false;
-                } else {
-                    self.renderer.setRenderTarget(pickingTexture);
-                }
-                var pickCtxt = self.renderer.getContext();
-				//var gl = self.renderer.getContext();
-				//read the pixel under the mouse from the texture
-				var pixelBuffer = new Uint8Array( 4 );
-				pickCtxt.readPixels( mouse.x, window.innerHeight - mouse.y, 1, 1, pickCtxt.RGBA, pickCtxt.UNSIGNED_BYTE, pixelBuffer );
-				//interpret the pixel as an ID
-				var id = ( pixelBuffer[0] << 16 ) | ( pixelBuffer[1] << 8 ) | ( pixelBuffer[2] );
-                var newHoverObj = null;
-				if (id != 0) {
-					newHoverObj = doban.nodelist[id-1000];
-                }
-                if (newHoverObj != hoverObj) {
-                    needsRender = true;
-				    if (hoverObj) { hoverObj.mesh.material = hoverObj.getMaterial(false); }
-                    hoverObj = newHoverObj;
-                    if (hoverObj) { hoverObj.mesh.material=hoverObj.getMaterial(true); }
-				}
-
-			}
-
-			function render() {
-				requestAnimationFrame( render );
-				pick();
-
-				var a = Math.cos(altitude) * cameraDistance;
-				camera.position.z = Math.cos(azimuth)*a;
-				camera.position.x = Math.sin(azimuth)*a;
-				camera.position.y = Math.sin(altitude)*cameraDistance;
-				camera.lookAt(new THREE.Vector3(0,0,0));
-                if (needsRender) {
+			var a = Math.cos(altitude) * cameraDistance;
+			camera.position.z = Math.cos(azimuth) * a;
+			camera.position.x = Math.sin(azimuth) * a;
+			camera.position.y = Math.sin(altitude) * cameraDistance;
+			camera.lookAt(new THREE.Vector3(0, 0, 0));
+			if (needsRender) {
 				self.renderer.setClearColor(doban.theme.background); // avoid spurious obj hits on bg
-				self.renderer.render( scene, camera );
-                needsRender = false;
-                }
-
-				KeyboardJS.activeKeys().forEach(function(key) {
-                        if (key == 'left') {touch(); azimuth -= 0.02;}
-                        else if (key == 'right') {touch(); azimuth += 0.02;}
-                        else if (key == 'up') {touch();altitude += 0.02;}
-                        else if (key == 'down') {touch();altitude -= 0.02;}
-					// clamp
-					if (altitude > (Math.PI/2)) { altitude = Math.PI/2; }
-					if (altitude < -(Math.PI/2)) { altitude = -Math.PI/2; }
-				});
+				self.renderer.render(scene, camera);
+				needsRender = false;
 			}
-			render();
-		</script>
-	</body>
+
+			KeyboardJS.activeKeys().forEach(function(key) {
+				if (key == 'left') {
+					touch();
+					azimuth -= 0.02;
+				} else if (key == 'right') {
+					touch();
+					azimuth += 0.02;
+				} else if (key == 'up') {
+					touch();
+					altitude += 0.02;
+				} else if (key == 'down') {
+					touch();
+					altitude -= 0.02;
+				}
+				// clamp
+				if (altitude > (Math.PI / 2)) {
+					altitude = Math.PI / 2;
+				}
+				if (altitude < -(Math.PI / 2)) {
+					altitude = -Math.PI / 2;
+				}
+			});
+		}
+		render();
+	</script>
+</body>
 </html>
