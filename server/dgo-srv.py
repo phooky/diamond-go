@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 from autobahn.asyncio.websocket import WebSocketServerProtocol, WebSocketServerFactory
-from threading import Semaphore
 import json
+import time
 
 VERSION=1
 PORT=3904
@@ -26,56 +26,98 @@ class NotIdentified(Exception):
     pass
 
 active_clients = []
-active_clients_sem = Semaphore()
+active_offers = []
+active_games = []
+
+def find_user(handle):
+    for client in active_clients:
+        if client.handle == handle:
+            return client
+    return None
+
+class Offer:
+    def __init__(self,by,to):
+        self.by = by
+        self.to = to
 
 class DiamondGoProtocol(WebSocketServerProtocol):
 
     def send_json(self, obj):
         self.sendMessage(json.dumps(obj,ensure_ascii=False).encode('utf-8'),isBinary=False)
 
+    def do_offers(self,command):
+        o = { 
+            't' : 'offers',
+            'users' : [x.by.identity for x in active_offers if x.to == self]
+            }
+        self.send_json(o)
+
+    def do_users(self,command):
+        o = { 
+            't' : 'user_list',
+            'users' : [x.identity for x in active_clients]
+            }
+        self.send_json(o)
+
+    def do_propose(self,command):
+        global active_offers
+        user = find_user(command['user']['handle'])
+        print("Propose: {0} proposes game to {1}".format(self.identity['handle'],command['user']['handle']))
+        if not user:
+            return
+        # remove other offers from this user
+        updates = set([x.to for x in active_offers if x.by == self])
+        updates.add(self)
+        updates.add(user)
+        active_offers = [x for x in active_offers if x.by != self]
+        # add new offer
+        offer = Offer(self,user)
+        active_offers.append(offer)
+        # send updated offer list to all changed parties
+        for u in updates:
+            u.do_offers(None)
+        print("Proposed: {0} proposes game to {1}".format(self.identity['handle'],user.identity['handle']))
+
     def do_hello(self,command):
-        print("do hello")
+        #TODO: disallow duplicate handles
         self.handle = command['handle']
         self.identity = { 'handle': self.handle, 'addr': self.addr } 
         self.send_json( {
             't' : 'hello_ack',
             'id' : self.identity,
             } )
-        print("done hello")
+        print("Login: {0} at {1}".format(self.handle, time.asctime()))
+        # update other clients
+        for client in active_clients:
+            if client != self:
+                client.do_users(None)
+
 
     handlers = {
             'hello' : do_hello,
+            'users' : do_users,
+            'propose_game' : do_propose,
             }
 
     def onConnect(self,info):
         self.identity = None
         self.addr = info.peer
-        #print("Connecting {0},{1}.".format(info,type(info)))
-        #print(dir(self))
 
     def onOpen(self):
-        active_clients_sem.acquire()
         active_clients.append(self)
-        active_clients_sem.release()
-        print("Opened.")
 
     def onClose(self,wasClean,code,reason):
-        active_clients_sem.acquire()
         try:
             active_clients.remove(self)
         except:
             pass
-        finally:
-            active_clients_sem.release()
-        print("Closed; {0} and {1}".format(code,reason))
+        print("Closed: {0} at {1} for {2}".format(self.handle,time.asctime(),reason))
     
     def onMessage(self, payload, isBinary):
-        print("message {0} {1}".format(payload,isBinary))
         try:
             obj = json.loads(payload.decode())
             handler = DiamondGoProtocol.handlers[obj['t']]
             handler(self,obj)
-            return "hello there ugh"
         except Exception as e:
             print(e)
 

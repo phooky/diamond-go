@@ -7,6 +7,27 @@ body {
     display: none;
 }
 
+.list {
+    margin-right: 10px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: white;
+}
+.list div {
+    padding:10px;
+}
+
+.list div:nth-child(odd) {
+    background-color:rgb(30,30,30);
+}
+.list div:nth-child(even) {
+    background-color:rgb(10,10,10);
+}
+
+.list div:active {
+    background-color:rgb(160,160,160);
+    color:black;
+}
 .lb_title {
     border-radius:20px 20px 0px 0px;
     background-color:rgba(10,10,10,1.0);
@@ -26,4 +47,17 @@ body {
     left:10px;
     top:10px;
     width:33%;
+    max-height:60%;
+}
+
+.notifybox {
+    z-index:2;
+    position:absolute;
+    right:10px;
+    left:10px;
+    bottom:10px;
+    max-height:40%;
+    background-color:rgba(0,0,0,0.4);
+    border-radius:20px;
+    padding:20px;
 }

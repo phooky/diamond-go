@@ -5,16 +5,36 @@
 </head>
 <body>
 	<!-- Hidden text chunks. -->
-	<div class="hidden" id="t_connecting">Connecting...</div>
 	<div class="layerbox">
 		<div class="lb_title" id="title_d">Welcome</div>
 		<div class="lb_body" id="body_d">
-			<p>Hello, and welcome to Diamond Go.</p>
-			<p>Please choose a username and click the button below to connect to the server.</p>
-			<p>Name: <input id="handle_t" type="text" size=20></p>
-			<button id="connect_b" type="button">connect</button>
+			<div class="hidden" id="t_welcome" style="display:block;">
+				<p>Hello, and welcome to Diamond Go.</p>
+				<p>Please choose a username and click the button below to connect to the server.</p>
+				<p>Name: <input id="handle_t" type="text" size=20></p>
+				<button id="connect_b" type="button">connect</button>
+			</div>
+			<div class="hidden" id="t_connecting">Connecting...</div>
+			<div class="hidden" id="t_userlist">
+				<p>Players online:</p>
+				<div class="list" id="user_list">
+				</div>
+				<p>Click on a player to offer to start a game.</p>
+				<p>Games in progress:</p>
+				<div class="list" id="game_list">
+				</div>
+				<p>Offers to play from:</p>
+				<div class="list" id="offer_list">
+				</div>
+				<p>Click on an offer to start a game.</p>
+			</div>
 		</div>
-	</div>	
+	</div>
+	<div class="notifybox">
+		<div class="hidden" id="n_welcome" style="display:block;">
+			Use the arrow keys to rotate the board, or the scroll wheel to zoom in or out. Click on a cube to play a stone. Connect to the server to play online.
+		</div>
+	</div>
 	<div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
 
 	<script src="three.min.js"></script>
@@ -23,13 +43,49 @@
 	<script type="text/javascript">
 		var server = undefined;
 		var identity = undefined;
+		var currentContent = document.getElementById("t_welcome");
 
 		function setTitle(txt) { document.getElementById("title_d").innerHTML=txt; }
+		function setBodyContent(id) { 
+			currentContent.style.display = "none";
+			currentContent = document.getElementById(id);
+			currentContent.style.display = "block";
+		}
+		function proposeGame(user) {
+			server_send({ "t":"propose_game", "user":user })
+		}
+		function updateUserList(userlist){
+			uldiv = document.getElementById("user_list");
+			while (uldiv.firstChild) { uldiv.removeChild(uldiv.firstChild); }
+			userlist.forEach( function(user) {
+				u = document.createElement("div");
+				u.addEventListener('click',function() { proposeGame(user); });
+				u.innerHTML = user["handle"];
+				uldiv.appendChild(u);
+			});
+		}
+		function updateOfferList(userlist){
+			uldiv = document.getElementById("offer_list");
+			while (uldiv.firstChild) { uldiv.removeChild(uldiv.firstChild); }
+			userlist.forEach( function(user) {
+				u = document.createElement("div");
+				u.innerHTML = user["handle"];
+				uldiv.appendChild(u);
+			});
+		}
 		function servermsg(evt) {
 			o = JSON.parse(evt.data);
 			if (o["t"] == "hello_ack") {
 				identity = o["id"];
 				setTitle("Connected as "+identity["handle"]);
+				setBodyContent("t_userlist");
+				server_send({
+					"t":"users"
+				});
+			} else if (o["t"] == "user_list") {
+				updateUserList(o["users"]);
+			} else if (o["t"] == "offers") {
+				updateOfferList(o["users"]);
 			}
 		}
 		// Set up callbacks
