@@ -11,7 +11,7 @@
 			<div class="hidden" id="t_welcome" style="display:block;">
 				<p>Hello, and welcome to Diamond Go.</p>
 				<p>Please choose a username and click the button below to connect to the server.</p>
-				<p>Name: <input id="handle_t" type="text" size=20></p>
+				<p>Name: <input id="handle_t" type="text" size=20 autofocus ></p>
 				<button id="connect_b" type="button">connect</button>
 			</div>
 			<div class="hidden" id="t_connecting">Connecting...</div>
@@ -41,6 +41,7 @@
 	<script src="keyboard.js"></script>
 	<script src="doban.js"></script>
 	<script type="text/javascript">
+		var handle = undefined;
 		var server = undefined;
 		var identity = undefined;
 		var currentContent = document.getElementById("t_welcome");
@@ -51,51 +52,86 @@
 			currentContent = document.getElementById(id);
 			currentContent.style.display = "block";
 		}
-		function proposeGame(user) {
-			server_send({ "t":"propose_game", "user":user })
+
+		function offerGame(user) {
+			server_send({ "t":"make_offer", "to":user["id"] })
 		}
+
 		function updateUserList(userlist){
 			uldiv = document.getElementById("user_list");
 			while (uldiv.firstChild) { uldiv.removeChild(uldiv.firstChild); }
 			userlist.forEach( function(user) {
 				u = document.createElement("div");
-				u.addEventListener('click',function() { proposeGame(user); });
+				u.addEventListener('click',function() { offerGame(user); });
 				u.innerHTML = user["handle"];
 				uldiv.appendChild(u);
 			});
 		}
-		function updateOfferList(userlist){
-			uldiv = document.getElementById("offer_list");
+
+		function updateGamesList(gamelist){
+			uldiv = document.getElementById("game_list");
 			while (uldiv.firstChild) { uldiv.removeChild(uldiv.firstChild); }
-			userlist.forEach( function(user) {
+			gamelist.forEach( function(game) {
 				u = document.createElement("div");
-				u.innerHTML = user["handle"];
+				//u.addEventListener('click',function() { proposeGame(user); });
+				u.innerHTML = game["white"]["handle"] + " vs. "+game["black"]["handle"];
 				uldiv.appendChild(u);
 			});
 		}
+
+		function clearOfferList() {
+			while (uldiv.firstChild) { uldiv.removeChild(uldiv.firstChild); }
+		}
+
+		function updateOffer(by,to,status) {
+			uldiv = document.getElementById("offer_list");
+			idv = by["id"] + "_" + to["id"]
+			if (status == "new") {
+				u = document.createElement("div");
+				u.id = by["id"] + "_" + to["id"]
+				u.innerHTML = by["handle"] + " to " +to["handle"];
+				uldiv.appendChild(u);
+			} else {
+				var node = uldiv.firstChild;
+				while (node) {
+    				if (node.id == idv) {
+    					uldiv.removeChild(node);
+    					break;
+    				}
+    				node = node.nextSibling;
+    			}
+    		}
+		}
+
 		function servermsg(evt) {
 			o = JSON.parse(evt.data);
-			if (o["t"] == "hello_ack") {
+			if (o["t"] == "hello") {
 				identity = o["id"];
-				setTitle("Connected as "+identity["handle"]);
+				setTitle("Connected as "+handle);
 				setBodyContent("t_userlist");
-				server_send({
-					"t":"users"
-				});
-			} else if (o["t"] == "user_list") {
+			} else if (o["t"] == "users_games") {
 				updateUserList(o["users"]);
-			} else if (o["t"] == "offers") {
-				updateOfferList(o["users"]);
+				updateGamesList(o["games"]);
+			} else if (o["t"] == "offer") {
+				alert("offer!");
+				updateOfferList(o["by"]);
 			}
 		}
+
 		// Set up callbacks
+		document.getElementById('handle_t').addEventListener('keyup', function(e) {
+			if (e.which == 13) {
+				document.getElementById('connect_b').click();
+			}
+		});
+
 		document.getElementById('connect_b').addEventListener('click', function() {
-			var handle = document.getElementById('handle_t').value;
+			handle = document.getElementById('handle_t').value;
 			server = new WebSocket("ws://127.0.0.1:3904");
 			setTitle("Connecting to server...");
 			server.onmessage = servermsg;
 			server_send({
-				"t": "hello",
+				"t": "hello_req",
 				"handle": handle
 			});
 		});
