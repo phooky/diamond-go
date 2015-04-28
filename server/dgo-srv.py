@@ -76,8 +76,8 @@ class Offer:
 
     def resolve(self, status):
         "Send offer resolution to both parties and remove from offers"
-        to.protocol.send_json( self.make_update(status) )
-        by.protocol.send_json( self.make_update(status) )
+        self.to.protocol.send_json( self.make_update(status) )
+        self.by.protocol.send_json( self.make_update(status) )
         offers.remove(self)
 
     def reject(self):
@@ -191,6 +191,10 @@ class DiamondGoProtocol(WebSocketServerProtocol):
         try:
             print("Close..")
             if self.user:
+                # close all offers
+                to_close = [offer for offer in offers if offer.by == self.user or offer.to == self.user]
+                for offer in to_close:
+                    offer.cancel()                        
                 print("Leaves: {0} at {1} for {2}".format(self.user.handle,time.asctime(),reason))
                 del users[id(self.user)]
                 for user in users.values():

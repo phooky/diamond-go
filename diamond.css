@@ -3,6 +3,15 @@ body {
     font-family: sans-serif;
 }
 
+hr {
+    border: none;
+    height: 5px;
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
 .hidden {
     display: none;
 }
@@ -28,6 +37,7 @@ body {
     background-color:rgb(160,160,160);
     color:black;
 }
+
 .lb_title {
     border-radius:20px 20px 0px 0px;
     background-color:rgba(10,10,10,1.0);
@@ -38,7 +48,7 @@ body {
 .lb_body {
     background-color:rgba(0,0,0,0.5);
     border-radius:0px 0px 20px 20px;
-    padding:20px 10px 20px 20px;
+    padding:20px 20px 20px 20px;
 }
 
 .layerbox {

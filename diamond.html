@@ -20,9 +20,11 @@
 				<div class="list" id="user_list">
 				</div>
 				<p>Click on a player to offer to start a game.</p>
+				<hr>
 				<p>Games in progress:</p>
 				<div class="list" id="game_list">
 				</div>
+				<hr>
 				<p>Offers to play from:</p>
 				<div class="list" id="offer_list">
 				</div>
@@ -60,17 +62,33 @@
 		function updateUserList(userlist){
 			uldiv = document.getElementById("user_list");
 			while (uldiv.firstChild) { uldiv.removeChild(uldiv.firstChild); }
-			userlist.forEach( function(user) {
+			if (userlist.length < 2) {
 				u = document.createElement("div");
-				u.addEventListener('click',function() { offerGame(user); });
-				u.innerHTML = user["handle"];
+				u.innerHTML = "<i>No other users logged in.</i>";
 				uldiv.appendChild(u);
+				return;				
+			}
+			userlist.sort(function(a,b) { return a["handle"] > b["handle"]; })
+			userlist.forEach( function(user) {
+				if (user["id"] != identity) {
+					u = document.createElement("div");
+					u.addEventListener('click',function() { offerGame(user); });
+					u.innerHTML = user["handle"];
+					uldiv.appendChild(u);
+				}
 			});
 		}
 
 		function updateGamesList(gamelist){
 			uldiv = document.getElementById("game_list");
 			while (uldiv.firstChild) { uldiv.removeChild(uldiv.firstChild); }
+			if (gamelist.length < 2) {
+				u = document.createElement("div");
+				u.innerHTML = "<i>No games in progress.</i>";
+				uldiv.appendChild(u);
+				return;				
+			}
+			gamelist.sort(function(a,b) { return a["white"]["handle"] > b["white"]["handle"]; })
 			gamelist.forEach( function(game) {
 				u = document.createElement("div");
 				//u.addEventListener('click',function() { proposeGame(user); });
@@ -113,8 +131,7 @@
 				updateUserList(o["users"]);
 				updateGamesList(o["games"]);
 			} else if (o["t"] == "offer") {
-				alert("offer!");
-				updateOfferList(o["by"]);
+				updateOffer(o["by"],o["to"],o["status"]);
 			}
 		}
 
