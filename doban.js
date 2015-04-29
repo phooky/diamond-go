@@ -95,10 +95,35 @@ Node.prototype = {
 PLAYER_BLACK = 0;
 PLAYER_WHITE = 1;
 
-function Game() {
-	this.currentTurn = 0;
-	this.history = [];
+function Move(moveDesc) {
+	this.where = moveDesc["where"];
+	this.player = moveDesc["player"];
+	this.seq = moveDesc["seq"];
+	if (moveDesc["captures"]) {
+		this.captures=moveDesc["captures"];
+	} else {
+		this.captures=[];
+	}
+}
+
+Move.prototype = {
+	constructor : Move,
+}
+
+function Game(gameDesc) {
+	this.id=gameDesc["id"];
+	this.players=gameDesc["players"];
+	this.moves = [];
 	this.whoseTurn = PLAYER_BLACK;
+}
+
+Game.prototype = {
+	constructor : Game,
+	addMove : function(move) {
+		// validate?
+		this.moves.push(move);
+		this.whoseTurn = this.moves.length % 2;
+	}
 }
 
 function Doban(ranks,theme) {
@@ -143,7 +168,7 @@ function Doban(ranks,theme) {
 	}
 	// Create link lines
 	this.linesMesh = new THREE.Line(this.linesGeo,this.theme.lineMat,THREE.LinePieces);
-	this.game = new Game();
+	this.game = undefined;
 	// Add to scenes
 	for (var i = 0; i < this.nodelist.length; i++) {
 		this.scene.add(this.nodelist[i].mesh);
@@ -173,14 +198,15 @@ Doban.prototype = {
 	},
 
 	reset : function() {
-		this.game = new Game();
+		this.game = undefined;
 		for (var i = 0; i < this.nodelist.length; i++) {
 			var n = this.nodelist[i];
 			n.state = NODE_EMPTY;
 			n.mesh.material = n.getMaterial(false);
 		}
 	},
-	getTurn : function() { return this.game.currentTurn; },
+
+	getTurn : function() { return this.moves.length + 1; },
 
 	pick : function(x,y) {
 		//render the picking scene off-screen
@@ -203,28 +229,32 @@ Doban.prototype = {
 		return null;
 	},
 
-	findNode : function(move) {
+	findNode : function(where) {
 		for (var i = 0; i < this.nodelist.length; i++) {
 			var node = this.nodelist[i];
-			if (node.rank == move[0] && node.x == move[1] && node.y == move[2]) {
-				return node
+			if (node.rank == where[0] && 
+				node.x == where[1] &&
+				node.y == where[2]) {
+				return node;
 			}
 		}
 		return undefined;
 	},
-	playMove : function(where,color) {
-		var node = this.findNode(where);
-		this.playStone(node,color);
+
+	playMove : function(move) {
+		//alert(JSON.stringify(move));
+		var node = this.findNode(move.where);
+		this.playStone(node,move.color);
+		this.game.addMove(move);
 	},
 
 	playStone : function(node,color) {
-		this.game.history.push(node.index);
+		this.game.moves.push(node.index);
 		if (color == 0) {
 			node.state = NODE_WHITE;
 		} else {
 			node.state = NODE_BLACK;
 		}
 		node.mesh.material = node.getMaterial(false);
-		this.game.currentTurn++;
 	}
 }

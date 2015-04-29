@@ -129,11 +129,11 @@
 		}
 
 		var game_moves = [];
-		var game_desc = undefined;
 		var game_player = undefined;
 
 		function showMoveInfo(player,move)	{
-			setTitle(game_desc["players"][0].handle + " vs. "+game_desc["players"][1].handle+" ("+(move+1)+")");
+			var players = doban.game.players;
+			setTitle(players[0].handle + " vs. "+players[1].handle+" ("+(move+1)+")");
 			var whose;
 			if (player % 2 == 0) {
 				whose = "Black";
@@ -143,15 +143,16 @@
 			document.getElementById('whose_p').innerHTML = whose+" to play.";
 		}
 
-		function showGame(desc, moves) {
-			game_desc = desc;
-			game_moves = moves;
-			players=desc["players"];
+		function setGame(desc, moves) {
+			doban.reset(); 
+			doban.game = new Game(desc);
+			touch(); 
+			var game = doban.game;
+			for (i = 0; i < moves.length; i++) { doban.playMove(moves[i]); }
 			game_player = undefined;
-			for (i = 0; i < players.length;i++) {
-				if (players[i]["id"] == identity) { game_player = i; break; }
+			for (i = 0; i < game.players.length;i++) {
+				if (game.players[i]["id"] == identity) { game_player = i; break; }
 			}
-			doban.reset(); touch(); 
 			setBodyContent("t_game");
 			showMoveInfo(0,0);
 		}
@@ -168,10 +169,10 @@
 			} else if (o["t"] == "offer") {
 				updateOffer(o["by"],o["to"],o["status"]);
 			} else if (o["t"] == "game") {
-				showGame(o["dsc"],o["moves"]);
+				setGame(o["dsc"],o["moves"]);
 			} else if (o["t"] == "game_upd") {
 				var move = o["move"];
-				doban.playMove(move["where"],move["player"]);
+				doban.playMove(new Move(move));
 				showMoveInfo(move["player"],move["seq"]);
 				touch();
 			}
@@ -277,7 +278,7 @@
 			// TODO: send move to server!
 			server && server_send( { 
 				"t":"move", 
-				"id":game_desc["id"], 
+				"id":doban.game.id, 
 				"move": {
 					"where":[node.rank, node.x, node.y],
 					"player": game_player,
