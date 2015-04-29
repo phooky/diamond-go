@@ -7,7 +7,7 @@ Every message is a JSON object.
 USERID, GAMEID are numeric identifiers
 
 GAMEDSC is a game descriptor of the form
-{ "id":GAMEID, "white":USERDSC, "black":USERDSC, "start":TIME }
+{ "id":GAMEID, "players":[ USERDSC, ...], "start":TIME }
 
 USERDSC is a user descriptor of the form
 { "id":USERID, "handle":HANDLE }
@@ -48,8 +48,15 @@ where OFFER_STATUS is one of "accepted","rejected"
 { "t":"leave_game", "id":GAMEID }
 
 
+
+MOVE is a move identifier of the form
+{ "where":[rank,x,y], "player":PLAYER_IDX, "seq":#, "captures":[ [rank,x,y], [rank,x,y] ... ] }
+The captures field is optional.
+If the where field is omitted, the move is a PASS.
+
 Send a game to a client
-{ "t":"game", "dsc":GAMEDSC, "moves":[ MOVE, MOVE, ... ] }
+{ "t":"game", "dsc":GAMEDSC, "turn":PLAYER_IDX, moves":[ MOVE, MOVE, ... ] }
+Players are indexed (players[0] is black, players[1] is white,)
 
 Update a game with a move
 { "t":"game_upd", id:GAMEID, "move":MOVE }

@@ -15,7 +15,7 @@
 				<button id="connect_b" type="button">connect</button>
 			</div>
 			<div class="hidden" id="t_game">
-				<p id="whose_p">Move 1, Black to move.</p>
+				<p id="whose_p">Move 1</p>
 			</div>
 			<div class="hidden" id="t_connecting">Connecting...</div>
 			<div class="hidden" id="t_userlist">
@@ -130,11 +130,12 @@
 
 		var game_moves = [];
 		var game_desc = undefined;
+		var game_player = undefined;
 
-		function showMoveInfo()	{
-			setTitle(game_desc.white.handle + " vs. "+game_desc.black.handle+" ("+(game_moves.length+1)+")");
+		function showMoveInfo(player,move)	{
+			setTitle(game_desc["players"][0].handle + " vs. "+game_desc["players"][1].handle+" ("+(move+1)+")");
 			var whose;
-			if (game_moves.length % 2 == 0) {
+			if (player % 2 == 0) {
 				whose = "Black";
 			} else {
 				whose = "White";
@@ -145,8 +146,14 @@
 		function showGame(desc, moves) {
 			game_desc = desc;
 			game_moves = moves;
+			players=desc["players"];
+			game_player = undefined;
+			for (i = 0; i < players.length;i++) {
+				if (players[i]["id"] == identity) { game_player = i; break; }
+			}
 			doban.reset(); touch(); 
 			setBodyContent("t_game");
+			showMoveInfo(0,0);
 		}
 
 		function servermsg(evt) {
@@ -164,7 +171,8 @@
 				showGame(o["dsc"],o["moves"]);
 			} else if (o["t"] == "game_upd") {
 				var move = o["move"];
-				doban.playMove(move);
+				doban.playMove(move["where"],move["player"]);
+				showMoveInfo(move["player"],move["seq"]);
 				touch();
 			}
 		}
@@ -196,18 +204,13 @@
 		var needsRender = true;
 		var needsPick = true;
 
-
-		var pickingTexture = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-		pickingTexture.generateMipmaps = false;
-
-
 		doban = new Doban(13, grayTheme);
 		doban.setRenderSize(window.innerWidth, window.innerHeight);
 		var camera = doban.camera;
 		camera.position.z = cameraDistance;
-		touch();
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
+		touch();
 
 		var container = document.getElementById('ThreeJS')
 		container.appendChild(doban.renderer.domElement);
@@ -275,9 +278,14 @@
 			server && server_send( { 
 				"t":"move", 
 				"id":game_desc["id"], 
-				"move": [node.rank, node.x, node.y] } );
-			doban.playStone(node);
-			node.mesh.material = node.getMaterial(false);
+				"move": {
+					"where":[node.rank, node.x, node.y],
+					"player": game_player,
+					"seq": 0, // TODO: fixme
+				}
+			} );
+			//doban.playStone(node);
+			//node.mesh.material = node.getMaterial(false);
 		}
 
 		function onWindowResize() {

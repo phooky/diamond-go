@@ -40,6 +40,10 @@ class UserState(Enum):
     playing = 2
     watching = 3
 
+class Player(Enum):
+    black = 0
+    white = 1
+
 class User:
     def __init__(self,handle,addr,protocol):
         self.handle = handle
@@ -90,18 +94,18 @@ class Offer:
         self.resolve('accepted')
         # Start game
         print("starting game")
-        game = Game(self.by,self.to)
+        game = Game([self.by,self.to])
 
 class Game:
-    def __init__(self,white,black):
-        self.white = white
-        self.black = black
+    def __init__(self,players):
+        self.players = players
         self.start = time.time()
         games[id(self)] = self
         self.moves = []
+        self.turn = 0
         self.watchers = set()
-        self.subscribe(black)
-        self.subscribe(white)
+        for watcher in self.players:
+            self.subscribe(watcher)
 
     def subscribe(self,watcher):
         if watcher not in self.watchers:
@@ -113,18 +117,16 @@ class Game:
 
     @property
     def desc(self):
-        return { 'id':id(self), 'white':self.white.desc, 'black':self.black.desc, 'start':self.start }
+        return { 'id':id(self), 'players':[x.desc for x in self.players], 'start':self.start }
 
     def play_move(self,by,move):
-        if (len(moves) % 2)  == 0:
-            if by != self.black:
-                raise Exception()
-            elif by != self.white:
-                raise Exception()
-            else:
-                raise Exception()
+        whose_move = moves.length % self.players.length;
+        if move["player"] != whose_move:
+            raise Exception("Illegal move: wrong player")
+        if self.players[whose_move] != by:
+            raise Exception("Illegal move: forged move")
         self.moves.append(move)
-        update = { 't':'game_upd', 'id':id(self), 'by':by.desc, 'move':move }
+        update = { 't':'game_upd', 'id':id(self), 'move':move }
         for watcher in self.watchers:
             watcher.protocol.send_json(update)
 

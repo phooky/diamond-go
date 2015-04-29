@@ -92,9 +92,13 @@ Node.prototype = {
 	}
 }
 
+PLAYER_BLACK = 0;
+PLAYER_WHITE = 1;
+
 function Game() {
 	this.currentTurn = 0;
 	this.history = [];
+	this.whoseTurn = PLAYER_BLACK;
 }
 
 function Doban(ranks,theme) {
@@ -208,18 +212,19 @@ Doban.prototype = {
 		}
 		return undefined;
 	},
-	playMove : function(move) {
-		var node = this.findNode(move);
-		this.playStone(node);
+	playMove : function(where,color) {
+		var node = this.findNode(where);
+		this.playStone(node,color);
 	},
 
-	playStone : function(node) {
+	playStone : function(node,color) {
 		this.game.history.push(node.index);
-		if (this.game.currentTurn % 2 == 0) {
+		if (color == 0) {
 			node.state = NODE_WHITE;
 		} else {
 			node.state = NODE_BLACK;
 		}
+		node.mesh.material = node.getMaterial(false);
 		this.game.currentTurn++;
 	}
 }
