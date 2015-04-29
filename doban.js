@@ -101,6 +101,9 @@ function Doban(ranks,theme) {
 	this.nodes = {};
 	this.nodelist = [];
 	this.ranks = ranks;
+	this.scene = new THREE.Scene();
+	this.pickingScene = new THREE.Scene();
+
 	if (theme) {
 		this.theme = theme;
 	} else {
@@ -137,21 +140,17 @@ function Doban(ranks,theme) {
 	// Create link lines
 	this.linesMesh = new THREE.Line(this.linesGeo,this.theme.lineMat,THREE.LinePieces);
 	this.game = new Game();
+	// Add to scenes
+	for (var i = 0; i < this.nodelist.length; i++) {
+		this.scene.add(this.nodelist[i].mesh);
+		this.pickingScene.add(this.nodelist[i].pickMesh);
+	}
+	this.scene.add(this.linesMesh);
 }
 
 Doban.prototype = {
 	constructor : Doban,
-	addToScene : function(scene) {
-		for (var i = 0; i < this.nodelist.length; i++) {
-			scene.add(this.nodelist[i].mesh);
-		}
-		scene.add(this.linesMesh);
-	},
-	addToPickingScene : function(pickingScene) {
-		for (var i = 0; i < this.nodelist.length; i++) {
-			pickingScene.add(this.nodelist[i].pickMesh);
-		}
-	},
+
 	reset : function() {
 		this.game = new Game();
 		for (var i = 0; i < this.nodelist.length; i++) {

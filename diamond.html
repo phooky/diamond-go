@@ -196,7 +196,6 @@
 		var needsRender = true;
 		var needsPick = true;
 
-		var scene = new THREE.Scene();
 		var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
 		var renderer = new THREE.WebGLRenderer();
 		self.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -206,15 +205,12 @@
 		//document.body.appendChild(self.renderer.domElement);
 		camera.position.z = cameraDistance;
 
-		var pickingScene = new THREE.Scene();
 		var pickingTexture = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
 		var canvasRect = renderer.domElement.getBoundingClientRect();
 
 		pickingTexture.generateMipmaps = false;
 
 		doban = new Doban(13, grayTheme);
-		doban.addToScene(scene);
-		doban.addToPickingScene(pickingScene);
 		var hoverObj = undefined;
 		var downOn = undefined;
 		var mouse = new THREE.Vector2();
@@ -300,7 +296,7 @@
 			//render the picking scene off-screen
 			if (needsPick) {
 				self.renderer.setClearColor(0x0000000); // avoid spurious obj hits on bg
-				self.renderer.render(pickingScene, camera, pickingTexture);
+				self.renderer.render(doban.pickingScene, camera, pickingTexture);
 				needsPick = false;
 			} else {
 				self.renderer.setRenderTarget(pickingTexture);
@@ -340,7 +336,7 @@
 			camera.lookAt(new THREE.Vector3(0, 0, 0));
 			if (needsRender) {
 				self.renderer.setClearColor(doban.theme.background); // avoid spurious obj hits on bg
-				self.renderer.render(scene, camera);
+				self.renderer.render(doban.scene, camera);
 				needsRender = false;
 			}
 
