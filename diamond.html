@@ -14,6 +14,9 @@
 				<p>Name: <input id="handle_t" type="text" size=20 autofocus ></p>
 				<button id="connect_b" type="button">connect</button>
 			</div>
+			<div class="hidden" id="t_game">
+				<p id="whose_p">Move 1, Black to move.</p>
+			</div>
 			<div class="hidden" id="t_connecting">Connecting...</div>
 			<div class="hidden" id="t_userlist">
 				<p>Players online:</p>
@@ -91,7 +94,6 @@
 			gamelist.sort(function(a,b) { return a["white"]["handle"] > b["white"]["handle"]; })
 			gamelist.forEach( function(game) {
 				u = document.createElement("div");
-				//u.addEventListener('click',function() { proposeGame(user); });
 				u.innerHTML = game["white"]["handle"] + " vs. "+game["black"]["handle"];
 				uldiv.appendChild(u);
 			});
@@ -101,12 +103,17 @@
 			while (uldiv.firstChild) { uldiv.removeChild(uldiv.firstChild); }
 		}
 
+		function acceptGame(by_id,to_id) {
+			server_send( { "t":"offer_rsp", "by":by_id, "to":to_id, "status":"accepted" } );
+		}
+
 		function updateOffer(by,to,status) {
 			uldiv = document.getElementById("offer_list");
 			idv = by["id"] + "_" + to["id"]
 			if (status == "new") {
 				u = document.createElement("div");
 				u.id = by["id"] + "_" + to["id"]
+				u.addEventListener('click',function() { acceptGame(by["id"],to["id"]); });
 				u.innerHTML = by["handle"] + " to " +to["handle"];
 				uldiv.appendChild(u);
 			} else {
@@ -121,6 +128,27 @@
     		}
 		}
 
+		var game_moves = [];
+		var game_desc = undefined;
+
+		function showMoveInfo()	{
+			setTitle(game_desc.white.handle + " vs. "+game_desc.black.handle+" ("+(game_moves.length+1)+")");
+			var whose;
+			if (game_moves.length % 2 == 0) {
+				whose = "Black";
+			} else {
+				whose = "White";
+			}
+			document.getElementById('whose_p').innerHTML = whose+" to play.";
+		}
+
+		function showGame(desc, moves) {
+			game_desc = desc;
+			game_moves = moves;
+			doban.reset(); touch(); 
+			setBodyContent("t_game");
+		}
+
 		function servermsg(evt) {
 			o = JSON.parse(evt.data);
 			if (o["t"] == "hello") {
@@ -132,6 +160,12 @@
 				updateGamesList(o["games"]);
 			} else if (o["t"] == "offer") {
 				updateOffer(o["by"],o["to"],o["status"]);
+			} else if (o["t"] == "game") {
+				showGame(o["dsc"],o["moves"]);
+			} else if (o["t"] == "game_upd") {
+				var move = o["move"];
+				doban.playMove(move);
+				touch();
 			}
 		}
 
@@ -238,6 +272,11 @@
 		function nodeClicked(node) {
 			touch();
 			if (node.state != NODE_EMPTY) return;
+			// TODO: send move to server!
+			server && server_send( { 
+				"t":"move", 
+				"id":game_desc["id"], 
+				"move": [node.rank, node.x, node.y] } );
 			doban.playStone(node);
 			node.mesh.material = node.getMaterial(false);
 		}

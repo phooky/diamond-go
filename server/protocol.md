@@ -37,7 +37,7 @@ Notify of offer (server->client)
 where OFFER_STATUS is one of "new", "accepted", "rejected", "cancelled"
 
 =>   Accept/Refuse offer (client->server)
-{ "t":"offer_rsp", "by":USERDSC, "to":USERDSC, "status":OFFER_STATUS }
+{ "t":"offer_rsp", "by":USERID, "to":USERID, "status":OFFER_STATUS }
 where OFFER_STATUS is one of "accepted","rejected"
 
 
@@ -53,6 +53,10 @@ Send a game to a client
 
 Update a game with a move
 { "t":"game_upd", id:GAMEID, "move":MOVE }
+
+End a game
+{ "t":"game_over", id:GAMEID, "status":GAME_STATUS }
+where GAME_STATUS is "cancelled", ... ?
 
 =>   Make a move (client->server)
 { "t":"move", id:GAMEID, "move":MOVE }

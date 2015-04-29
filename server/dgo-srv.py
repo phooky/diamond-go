@@ -88,7 +88,9 @@ class Offer:
 
     def accept(self):
         self.resolve('accepted')
-        # START GAME HERE
+        # Start game
+        print("starting game")
+        game = Game(self.by,self.to)
 
 class Game:
     def __init__(self,white,black):
@@ -103,11 +105,11 @@ class Game:
 
     def subscribe(self,watcher):
         if watcher not in self.watchers:
-            watchers.add(watcher)
-            watcher.protocol.send_json( { 't':'game', 'dsc':self.desc, 'moves':moves } )
+            self.watchers.add(watcher)
+            watcher.protocol.send_json( { 't':'game', 'dsc':self.desc, 'moves':self.moves } )
 
     def unsubscribe(self,watcher):
-        watchers.remove(watcher)
+        self.watchers.remove(watcher)
 
     @property
     def desc(self):
@@ -159,7 +161,11 @@ class DiamondGoProtocol(WebSocketServerProtocol):
         to = users[command['to']]
         by = users[command['by']]
         status = command['status']
-        Offer.find(by,to).resolve(status)
+        offer = Offer.find(by,to)
+        if status == "accepted": 
+            offer.accept()
+        elif status == "rejected":
+            offer.reject()
 
     def do_watch_game(self,command):
         pass
@@ -168,6 +174,16 @@ class DiamondGoProtocol(WebSocketServerProtocol):
         pass
 
     def do_move(self,command):
+        game_id = command["id"]
+        move = command["move"]
+        # send to all watchers
+        game = games[game_id]
+        for watcher in game.watchers:
+            watcher.protocol.send_json( {
+                't':'game_upd',
+                'id':game_id,
+                'move':move
+                })
         pass
 
     handlers = {

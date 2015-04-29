@@ -155,10 +155,27 @@ Doban.prototype = {
 	reset : function() {
 		this.game = new Game();
 		for (var i = 0; i < this.nodelist.length; i++) {
-			this.nodelist[i].state = NODE_EMPTY;
+			var n = this.nodelist[i];
+			n.state = NODE_EMPTY;
+			n.mesh.material = n.getMaterial(false);
 		}
 	},
 	getTurn : function() { return this.game.currentTurn; },
+
+	findNode : function(move) {
+		for (var i = 0; i < this.nodelist.length; i++) {
+			var node = this.nodelist[i];
+			if (node.rank == move[0] && node.x == move[1] && node.y == move[2]) {
+				return node
+			}
+		}
+		return undefined;
+	},
+	playMove : function(move) {
+		var node = this.findNode(move);
+		this.playStone(node);
+	},
+
 	playStone : function(node) {
 		this.game.history.push(node.index);
 		if (this.game.currentTurn % 2 == 0) {
