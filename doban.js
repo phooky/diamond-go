@@ -146,10 +146,27 @@ function Doban(ranks,theme) {
 		this.pickingScene.add(this.nodelist[i].pickMesh);
 	}
 	this.scene.add(this.linesMesh);
+	// set up renderer
+	this.renderer = new THREE.WebGLRenderer();
+	this.renderer.sortObjects = false;
+	this.camera = undefined;
+	this.pickingTexture = undefined;
 }
 
 Doban.prototype = {
 	constructor : Doban,
+
+	setRenderSize : function(w,h) {
+		if (this.camera == undefined) {
+			this.camera = new THREE.PerspectiveCamera(75, w/h, 0.1, 10000);
+		} else {
+			this.camera.aspect = w/h;
+			this.camera.updateProjectionMatrix();
+		}
+		this.renderer.setSize(w,h);
+		this.pickingTexture = new THREE.WebGLRenderTarget(w,h);
+		this.pickingTexture.generateMipmaps = false;
+	},
 
 	reset : function() {
 		this.game = new Game();
@@ -160,6 +177,27 @@ Doban.prototype = {
 		}
 	},
 	getTurn : function() { return this.game.currentTurn; },
+
+	pick : function(x,y) {
+		//render the picking scene off-screen
+		if (needsPick) {
+			this.renderer.setClearColor(0x0000000); // avoid spurious obj hits on bg
+			this.renderer.render(this.pickingScene, this.camera, this.pickingTexture);
+			needsPick = false;
+		} else {
+			this.renderer.setRenderTarget(this.pickingTexture);
+		}
+		var pickCtxt = this.renderer.getContext();
+		//read the pixel under the mouse from the texture
+		var pixelBuffer = new Uint8Array(4);
+		pickCtxt.readPixels(x, y, 1, 1, pickCtxt.RGBA, pickCtxt.UNSIGNED_BYTE, pixelBuffer);
+		//interpret the pixel as an ID
+		var id = (pixelBuffer[0] << 16) | (pixelBuffer[1] << 8) | (pixelBuffer[2]);
+		if (id != 0) {
+			return this.nodelist[id - 1000];
+		}
+		return null;
+	},
 
 	findNode : function(move) {
 		for (var i = 0; i < this.nodelist.length; i++) {

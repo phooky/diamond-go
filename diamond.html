@@ -196,21 +196,22 @@
 		var needsRender = true;
 		var needsPick = true;
 
-		var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-		var renderer = new THREE.WebGLRenderer();
-		self.renderer.setSize(window.innerWidth, window.innerHeight);
-		self.renderer.sortObjects = false;
-		var container = document.getElementById('ThreeJS')
-		container.appendChild(self.renderer.domElement);
-		//document.body.appendChild(self.renderer.domElement);
-		camera.position.z = cameraDistance;
 
 		var pickingTexture = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-		var canvasRect = renderer.domElement.getBoundingClientRect();
-
 		pickingTexture.generateMipmaps = false;
 
+
 		doban = new Doban(13, grayTheme);
+		doban.setRenderSize(window.innerWidth, window.innerHeight);
+		var camera = doban.camera;
+		camera.position.z = cameraDistance;
+		touch();
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		var container = document.getElementById('ThreeJS')
+		container.appendChild(doban.renderer.domElement);
+
 		var hoverObj = undefined;
 		var downOn = undefined;
 		var mouse = new THREE.Vector2();
@@ -251,7 +252,9 @@
 			touch();
 			updateMousePosition(event);
 			if (downOn == hoverObj) {
-				nodeClicked(hoverObj);
+				if (hoverObj) {
+					nodeClicked(hoverObj);
+				}
 			}
 			downOn = undefined;
 		}
@@ -278,12 +281,9 @@
 		}
 
 		function onWindowResize() {
+			doban.setRenderSize(window.innerWidth,window.innerHeight);
 			touch();
-			camera.aspect = window.innerWidth / window.innerHeight;
-			camera.updateProjectionMatrix();
-			self.renderer.setSize(window.innerWidth, window.innerHeight);
-			pickingTexture = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-			canvasRect = renderer.domElement.getBoundingClientRect();
+
 		}
 
 		container.addEventListener('mousemove', onDocumentMouseMove, false);
@@ -293,25 +293,7 @@
 		window.addEventListener('resize', onWindowResize, false);
 
 		function pick() {
-			//render the picking scene off-screen
-			if (needsPick) {
-				self.renderer.setClearColor(0x0000000); // avoid spurious obj hits on bg
-				self.renderer.render(doban.pickingScene, camera, pickingTexture);
-				needsPick = false;
-			} else {
-				self.renderer.setRenderTarget(pickingTexture);
-			}
-			var pickCtxt = self.renderer.getContext();
-			//var gl = self.renderer.getContext();
-			//read the pixel under the mouse from the texture
-			var pixelBuffer = new Uint8Array(4);
-			pickCtxt.readPixels(mouse.x, window.innerHeight - mouse.y, 1, 1, pickCtxt.RGBA, pickCtxt.UNSIGNED_BYTE, pixelBuffer);
-			//interpret the pixel as an ID
-			var id = (pixelBuffer[0] << 16) | (pixelBuffer[1] << 8) | (pixelBuffer[2]);
-			var newHoverObj = null;
-			if (id != 0) {
-				newHoverObj = doban.nodelist[id - 1000];
-			}
+			var newHoverObj = doban.pick(mouse.x, window.innerHeight - mouse.y)
 			if (newHoverObj != hoverObj) {
 				needsRender = true;
 				if (hoverObj) {
@@ -335,8 +317,8 @@
 			camera.position.y = Math.sin(altitude) * cameraDistance;
 			camera.lookAt(new THREE.Vector3(0, 0, 0));
 			if (needsRender) {
-				self.renderer.setClearColor(doban.theme.background); // avoid spurious obj hits on bg
-				self.renderer.render(doban.scene, camera);
+				doban.renderer.setClearColor(doban.theme.background); // avoid spurious obj hits on bg
+				doban.renderer.render(doban.scene, camera);
 				needsRender = false;
 			}
 
