@@ -24,6 +24,9 @@ from enum import Enum
 # S7) Offer On has been accepted/declined/timed out. (Game is Gn)
 # C7) Acknowledged.
 
+class IllegalMove(Exception):
+    pass
+
 class NotIdentified(Exception):
     pass
 
@@ -122,9 +125,9 @@ class Game:
     def play_move(self,by,move):
         whose_move = moves.length % self.players.length;
         if move["player"] != whose_move:
-            raise Exception("Illegal move: wrong player")
+            raise IllegalMove("wrong player")
         if self.players[whose_move] != by:
-            raise Exception("Illegal move: forged move")
+            raise IllegalMove("forged move")
         self.moves.append(move)
         update = { 't':'game_upd', 'id':id(self), 'move':move }
         for watcher in self.watchers:
