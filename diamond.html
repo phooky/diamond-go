@@ -91,10 +91,10 @@
 				uldiv.appendChild(u);
 				return;				
 			}
-			gamelist.sort(function(a,b) { return a["white"]["handle"] > b["white"]["handle"]; })
+			gamelist.sort(function(a,b) { return a["players"][0]["handle"] > b["players"][0]["handle"]; })
 			gamelist.forEach( function(game) {
 				u = document.createElement("div");
-				u.innerHTML = game["white"]["handle"] + " vs. "+game["black"]["handle"];
+				u.innerHTML = game["players"][0]["handle"] + " vs. "+game["players"][1]["handle"];
 				uldiv.appendChild(u);
 			});
 		}
@@ -128,14 +128,13 @@
     		}
 		}
 
-		var game_moves = [];
 		var game_player = undefined;
 
-		function showMoveInfo(player,move)	{
+		function showMoveInfo()	{
 			var players = doban.game.players;
-			setTitle(players[0].handle + " vs. "+players[1].handle+" ("+(move+1)+")");
+			setTitle(players[0].handle + " vs. "+players[1].handle+" ("+(doban.game.moves.length+1)+")");
 			var whose;
-			if (player % 2 == 0) {
+			if (doban.game.whoseTurn % 2 == 0) {
 				whose = "Black";
 			} else {
 				whose = "White";

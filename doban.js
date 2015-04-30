@@ -244,16 +244,15 @@ Doban.prototype = {
 	playMove : function(move) {
 		//alert(JSON.stringify(move));
 		var node = this.findNode(move.where);
-		this.playStone(node,move.color);
+		this.playStone(node,move.player);
 		this.game.addMove(move);
 	},
 
 	playStone : function(node,color) {
-		this.game.moves.push(node.index);
 		if (color == 0) {
-			node.state = NODE_WHITE;
-		} else {
 			node.state = NODE_BLACK;
+		} else {
+			node.state = NODE_WHITE;
 		}
 		node.mesh.material = node.getMaterial(false);
 	}
