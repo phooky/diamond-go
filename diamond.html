@@ -15,6 +15,7 @@
 				<button id="connect_b" type="button">connect</button>
 			</div>
 			<div class="hidden" id="t_game">
+				<p id="game_title_p" style="font-weight:bold;">Player A vs. Player B</p>
 				<p id="whose_p">Move 1</p>
 			</div>
 			<div class="hidden" id="t_connecting">Connecting...</div>
@@ -94,7 +95,7 @@
 			gamelist.sort(function(a,b) { return a["players"][0]["handle"] > b["players"][0]["handle"]; })
 			gamelist.forEach( function(game) {
 				u = document.createElement("div");
-				u.innerHTML = game["players"][0]["handle"] + " vs. "+game["players"][1]["handle"];
+				u.innerHTML = game["players"][0]["handle"] + " vs. "+game["players"][1]	["handle"];
 				uldiv.appendChild(u);
 			});
 		}
@@ -132,12 +133,14 @@
 
 		function showMoveInfo()	{
 			var players = doban.game.players;
-			setTitle(players[0].handle + " vs. "+players[1].handle+" ("+(doban.game.moves.length+1)+")");
-			var whose;
+			document.getElementById("game_title_p").innerHTML = 
+				players[0].handle + " (Black) vs. " + 
+				players[1].handle + " (White)";
+			var whose = "Turn "+(doban.game.moves.length+1)+", ";
 			if (doban.game.whoseTurn % 2 == 0) {
-				whose = "Black";
+				whose += "Black";
 			} else {
-				whose = "White";
+				whose += "White";
 			}
 			document.getElementById('whose_p').innerHTML = whose+" to play.";
 		}

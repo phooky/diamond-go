@@ -123,11 +123,12 @@ class Game:
         return { 'id':id(self), 'players':[x.desc for x in self.players], 'start':self.start }
 
     def play_move(self,by,move):
-        whose_move = moves.length % self.players.length;
+        whose_move = len(self.moves) % len(self.players)
         if move["player"] != whose_move:
             raise IllegalMove("wrong player")
         if self.players[whose_move] != by:
             raise IllegalMove("forged move")
+        # find and remove dead stones
         self.moves.append(move)
         update = { 't':'game_upd', 'id':id(self), 'move':move }
         for watcher in self.watchers:
@@ -183,13 +184,7 @@ class DiamondGoProtocol(WebSocketServerProtocol):
         move = command["move"]
         # send to all watchers
         game = games[game_id]
-        for watcher in game.watchers:
-            watcher.protocol.send_json( {
-                't':'game_upd',
-                'id':game_id,
-                'move':move
-                })
-        pass
+        game.play_move(self.user,move)
 
     handlers = {
             'hello_req' : do_hello_req,
