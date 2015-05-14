@@ -235,7 +235,7 @@ if __name__ == '__main__':
     factory.protocol = DiamondGoProtocol
 
     loop = asyncio.get_event_loop()
-    coro = loop.create_server(factory, '127.0.0.1', PORT)
+    coro = loop.create_server(factory, 'phooky.name', PORT)
     server = loop.run_until_complete(coro)
     try:
         loop.run_forever()
