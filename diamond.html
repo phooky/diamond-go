@@ -189,7 +189,7 @@
 
 		document.getElementById('connect_b').addEventListener('click', function() {
 			handle = document.getElementById('handle_t').value;
-			server = new WebSocket("ws://127.0.0.1:3904");
+			server = new WebSocket("ws://phooky.name:3904");
 			setTitle("Connecting to server...");
 			server.onmessage = servermsg;
 			server_send({

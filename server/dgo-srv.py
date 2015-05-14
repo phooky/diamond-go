@@ -231,7 +231,7 @@ class DiamondGoProtocol(WebSocketServerProtocol):
 
 if __name__ == '__main__':
     import asyncio
-    factory = WebSocketServerFactory("ws://127.0.0.1:{0}".format(PORT),debug=False)
+    factory = WebSocketServerFactory("ws://phooky.name:{0}".format(PORT),debug=False)
     factory.protocol = DiamondGoProtocol
 
     loop = asyncio.get_event_loop()
